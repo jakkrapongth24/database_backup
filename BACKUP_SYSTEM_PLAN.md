@@ -1,193 +1,338 @@
 # DB Backup Management System
 
-## Automation Update
+## ภาพรวมระบบ
 
-- Added scheduled backup command: `php artisan backup:run-scheduled`
-- Preview due scheduled targets without running backup: `php artisan backup:run-scheduled --dry-run`
-- Run one target only: `php artisan backup:run-scheduled --target=1`
-- Added retention cleanup command: `php artisan backup:cleanup`
-- Preview expired files before deleting: `php artisan backup:cleanup --dry-run`
-- Run cleanup for one target only: `php artisan backup:cleanup --target=1`
-- Laravel Scheduler is configured in `bootstrap/app.php`.
-- `backup:run-scheduled` is checked whenever Windows calls `php artisan schedule:run`.
-- `backup:cleanup` runs hourly, but only removes files older than each target retention setting.
-- For Windows Task Scheduler, call this command from the project folder every 1 hour: `php artisan schedule:run`
-- Successful manual or scheduled backups also trigger retention cleanup for that target.
-- Added Backup History filters by keyword, target, status, and date range.
-- Added Reports page with success rate, total backup size, daily summary, target summary, and stale target warning.
-- Added secure backup download from Backup History.
-- Download is allowed only for successful jobs with an existing file inside the configured backup directory.
-- Added Audit Logs table and page.
-- Audit Logs capture login, logout, failed login, target create/update/delete, connection tests, backup requests, backup success/failure, downloads, and retention cleanup.
-- Audit Logs can be filtered by keyword, action, and date range.
+ระบบนี้เป็นเว็บสำหรับจัดการการ backup ฐานข้อมูล `MariaDB` และ `MySQL` หลายระบบผ่าน Laravel  
+ฐานข้อมูลหลักของระบบคือ `db_backup` และผู้ใช้สำหรับ login อ่านจาก `bp_webapp.personel`
 
-## สถานะปัจจุบัน
+---
 
-ระบบนี้เป็นเว็บสำหรับจัดการการ backup ฐานข้อมูล MariaDB/MySQL หลายระบบผ่าน Laravel โดยใช้บัญชีผู้ใช้จากตาราง `personel` ของระบบเดิม และให้ผู้ที่ login ได้เป็น Admin ทั้งหมด
+## สถานะล่าสุดของโปรเจกต์
 
-## งานที่ทำได้แล้ว
+### ทำเสร็จแล้ว
 
-- Login ด้วยข้อมูลจากตาราง `personel`
-- Sync ข้อมูล `personel` จากฐาน `bp_webapp` บน server เดิม
-- ใช้ฐานข้อมูลหลักของระบบนี้ชื่อ `db_backup`
-- Dashboard แสดงสถิติพื้นฐานของระบบ backup
-- จัดการ Backup Targets ได้
-- เพิ่ม แก้ไข ลบ target ที่ต้องการ backup
-- กำหนดชนิดฐานข้อมูล `MariaDB` หรือ `MySQL`
-- กำหนด host, port, database, username, password ได้
-- password ของ target สามารถเว้นว่างได้
-- กำหนด Backup Path แยกแต่ละ target ได้
-- Path `mysqldump/mariadb-dump` สามารถเว้นว่างได้ และระบบเลือกจากค่า default ให้
-- ทดสอบ connection ของ target ได้
-- กด Backup Now ได้
+#### 1. Authentication และ User
+
+- Login ด้วย `username` และ `password`
+- อ่านผู้ใช้จาก `bp_webapp.personel` โดยตรง
+- model `User` ผูกกับ connection `bp_webapp`
+- บัญชีที่ login ได้ถือเป็น Admin ทั้งหมด
+
+#### 2. Backup Targets
+
+- เพิ่ม / แก้ไข / ลบ Backup Target ได้
+- รองรับ `MariaDB` และ `MySQL`
+- ตั้งค่า `host`, `port`, `database`, `username`, `password` ได้
+- ช่อง `password` เว้นว่างได้
+- ตั้งค่า `backup_path` แยกแต่ละ target ได้
+- ตั้งค่า `dump_binary_path` แยกแต่ละ target ได้
+- รองรับ `notification_emails` ต่อ target
+- มีปุ่ม `Test Connection`
+- รองรับ `127.0.0.1` แทน `localhost` สำหรับเครื่อง Windows/WAMP
+
+#### 3. Manual Backup
+
+- มีปุ่ม `Backup Now`
 - สร้างไฟล์ backup เป็น `.sql.gz`
-- เก็บประวัติ backup ใน `backup_jobs`
-- มีหน้า Backup History
-- แสดงสถานะ backup `success` หรือ `failed`
-- แสดง file path, file size, เวลาเริ่ม, เวลาที่ใช้ และ error message
-- รองรับ fallback จาก external dump tool ไปใช้ PHP/PDO dump เมื่อเรียก `mariadb-dump/mysqldump` จากเว็บบน Windows/WAMP แล้วมีปัญหา socket
+- เก็บประวัติลงตาราง `backup_jobs`
+- มีสถานะ `queued`, `running`, `success`, `failed`
+- เก็บชื่อไฟล์, path, ขนาดไฟล์, เวลาเริ่ม, เวลาสิ้นสุด, ระยะเวลา และ error
+- ถ้า dump tool ภายนอกมีปัญหา จะ fallback ไปใช้ `PHP/PDO dump`
 
-## ค่าตั้งต้นสำคัญใน `.env`
+#### 4. Queue และ Background Job
+
+- ย้ายงาน `Backup Now` ไปทำผ่าน queue แล้ว
+- งาน scheduled backup ก็เข้า queue เช่นกัน
+- ถ้ามีงาน `queued` หรือ `running` อยู่แล้ว ระบบจะไม่คิวซ้ำ target เดิม
+- หน้า `Backup History` และ `Dashboard` แสดงสถานะ `queued`
+- มีคำสั่ง/สคริปต์สำหรับเปิด `queue worker`
+
+#### 5. Notification เมื่อ Backup Fail
+
+- ส่ง email แจ้งเตือนเมื่อ backup ล้มเหลว
+- ใช้อีเมลจาก `notification_emails` ของ target ก่อน
+- ถ้า target ไม่ได้ตั้งไว้ จะ fallback ไปที่ `BACKUP_ALERT_EMAILS` ใน `.env`
+- มี mail view สำหรับข้อความแจ้งเตือนแล้ว
+
+#### 6. Dashboard และ UI
+
+- มี Dashboard แสดงสถิติหลักของระบบ
+- มี sidebar navigation
+- มีหน้า `Backup Targets`, `Backup History`, `Reports`, `Audit Logs`, `Automation Guide`
+- ใช้ `SweetAlert2` สำหรับแจ้งเตือนและ confirm action
+- รองรับการใช้งานทั้ง desktop และ mobile
+
+#### 7. Backup History
+
+- มีหน้า `Backup History`
+- ค้นหาได้จาก keyword
+- filter ตาม `target`
+- filter ตาม `status`
+- filter ตามช่วงวันที่
+- มี summary ด้านบน
+- แสดงสถานะ `queued`, `running`, `success`, `failed`
+
+#### 8. Reports
+
+- มีหน้า `Reports`
+- สรุปจำนวนงาน backup
+- แสดง success rate
+- แสดงจำนวน failed
+- แสดงขนาดไฟล์รวม
+- แสดงเวลาเฉลี่ยที่ใช้ backup
+- แสดงสรุปรายวัน
+- แสดงสรุปตาม target
+- แสดง target ที่ควรตรวจสอบ
+
+#### 9. Download Backup
+
+- ดาวน์โหลดไฟล์ backup ได้จากหน้า `Backup History`
+- ดาวน์โหลดได้เฉพาะรายการที่ `success`
+- ตรวจสอบว่าไฟล์มีอยู่จริงก่อนดาวน์โหลด
+- จำกัด path ให้อยู่ใน backup directory ที่ระบบอนุญาต
+
+#### 10. Schedule และ Automation
+
+- มีคำสั่ง `php artisan backup:run-scheduled`
+- มี `--dry-run`
+- มี `--target=ID`
+- ตั้ง Laravel Scheduler ใน `bootstrap/app.php` แล้ว
+- รองรับ schedule แบบ `manual`, `daily`, `weekly`, `monthly`
+- มีหน้า `Automation Guide`
+- มี `.bat` สำหรับ
+  - เปิด dev stack
+  - เปิด worker
+  - เปิด scheduler worker
+  - import tasks เข้า Windows Task Scheduler
+- มีไฟล์ `.xml` สำหรับ import เข้า Windows Task Scheduler
+- มี PowerShell script สำหรับ import tasks อัตโนมัติ 2 ตัวรวดเดียว
+
+#### 11. Retention Cleanup
+
+- มีคำสั่ง `php artisan backup:cleanup`
+- มี `--dry-run`
+- มี `--target=ID`
+- ลบไฟล์ backup เก่าตาม `retention_days`
+- ลบ record เก่าที่เกี่ยวข้อง
+- scheduler เรียก cleanup อัตโนมัติได้
+- หลัง backup สำเร็จ ระบบ trigger cleanup ของ target นั้นให้แล้ว
+
+#### 12. Audit Logs
+
+- มีตาราง `audit_logs`
+- มีหน้า `Audit Logs`
+- filter ตาม `action` และช่วงวันที่ได้
+- บันทึกเหตุการณ์สำคัญ เช่น
+  - login
+  - logout
+  - login failed
+  - create / update / delete target
+  - test connection
+  - backup queued / completed / failed
+  - download backup
+  - retention cleanup
+  - notification sent / notification failed
+- ซ่อนข้อมูล password ใน metadata อัตโนมัติ
+
+#### 13. UX ที่เพิ่งปรับเพิ่ม
+
+- หลังแก้ไข `Backup Target` แล้วจะ redirect กลับมาหน้า edit เดิม
+- หน้า edit แสดง `Last saved` เพื่อให้เห็นว่าบันทึกแล้วจริง
+
+---
+
+## งานที่เพิ่งเพิ่มในรอบล่าสุด
+
+- เปลี่ยน auth ให้ใช้ `bp_webapp.personel` โดยตรง
+- เพิ่ม `notification_emails` ใน target
+- เพิ่มสถานะ `queued` ใน backup jobs
+- ย้าย backup ไปทำผ่าน queue
+- เพิ่ม email แจ้งเตือน backup fail
+- เพิ่ม `RunBackupJob`
+- เพิ่ม `BackupFailedMail`
+- เพิ่มหน้า/คู่มือ Automation Guide ใหม่
+- เพิ่มไฟล์:
+  - `scripts/windows/start-dev.bat`
+  - `scripts/windows/start-worker.bat`
+  - `scripts/windows/start-scheduler.bat`
+  - `scripts/windows/import-task-scheduler-tasks.ps1`
+  - `scripts/windows/import-task-scheduler-tasks.bat`
+  - `scripts/windows/task-scheduler/db-backup-scheduler.xml`
+  - `scripts/windows/task-scheduler/db-backup-queue-worker.xml`
+
+---
+
+## คำสั่งที่ใช้ได้ตอนนี้
+
+```bash
+php artisan serve --host=127.0.0.1 --port=8081
+php artisan optimize:clear
+php artisan test
+
+php artisan queue:work --tries=1
+php artisan schedule:work
+php artisan schedule:list
+
+php artisan backup:run-scheduled --dry-run
+php artisan backup:run-scheduled --target=1
+php artisan backup:cleanup --dry-run
+php artisan backup:cleanup --target=1
+```
+
+คำสั่งผ่าน Composer:
+
+```bash
+composer dev
+composer dev:backend
+composer queue:work
+composer schedule:work
+```
+
+---
+
+## ไฟล์ Automation ที่เพิ่มไว้แล้ว
+
+### Batch files
+
+- `scripts/windows/start-dev.bat`
+- `scripts/windows/start-worker.bat`
+- `scripts/windows/start-scheduler.bat`
+- `scripts/windows/import-task-scheduler-tasks.bat`
+
+### PowerShell
+
+- `scripts/windows/import-task-scheduler-tasks.ps1`
+
+### Windows Task Scheduler XML
+
+- `scripts/windows/task-scheduler/db-backup-scheduler.xml`
+- `scripts/windows/task-scheduler/db-backup-queue-worker.xml`
+
+---
+
+## ค่า `.env` สำคัญ
 
 ```env
 DB_CONNECTION=mariadb
 DB_HOST=127.0.0.1
-DB_PORT=3306
+DB_PORT=3307
 DB_DATABASE=db_backup
 DB_USERNAME=root
 DB_PASSWORD=
 
 BP_WEBAPP_DB_CONNECTION=mariadb
-BP_WEBAPP_DB_HOST=192.168.60.201
-BP_WEBAPP_DB_PORT=3306
+BP_WEBAPP_DB_HOST=127.0.0.1
+BP_WEBAPP_DB_PORT=3307
 BP_WEBAPP_DB_DATABASE=bp_webapp
-BP_WEBAPP_DB_USERNAME=Admin11106
-BP_WEBAPP_DB_PASSWORD="Bph11106+"
+BP_WEBAPP_DB_USERNAME=root
+BP_WEBAPP_DB_PASSWORD=
 
 BACKUP_DEFAULT_PATH=storage/app/backups
 BACKUP_DUMP_BINARY_PATH=C:/wamp64/bin/mariadb/mariadb11.4.9/bin/mariadb-dump.exe
 BACKUP_MARIADB_DUMP_BINARY_PATH=C:/wamp64/bin/mariadb/mariadb11.4.9/bin/mariadb-dump.exe
 BACKUP_MYSQL_DUMP_BINARY_PATH=C:/wamp64/bin/mysql/mysql8.4.7/bin/mysqldump.exe
+BACKUP_ALERT_EMAILS=
+
+QUEUE_CONNECTION=database
+MAIL_MAILER=log
 ```
 
-## คำสั่งที่ใช้งานบ่อย
+---
 
-```bash
-php artisan serve
-php artisan migrate --force
-php artisan personel:sync-remote --fresh
-php artisan optimize:clear
-npm.cmd run build
-php artisan test
-```
+## ปัญหาที่เคยเจอและแนวทางแก้
 
-## ตัวอย่างการกรอก Backup Target
+- ถ้า backup ค้างที่ `QUEUED`
+  - สาเหตุหลักคือยังไม่มี `queue worker` รันอยู่
+  - ให้เปิด `php artisan queue:work --tries=1`
 
-สำหรับ MariaDB บน WAMP:
+- ถ้าแก้ `.env` แล้วค่าระบบไม่เปลี่ยน
+  - ให้รัน `php artisan optimize:clear`
+  - แล้ว restart `artisan serve`
 
-```text
-DB Type: MariaDB
-Host: 127.0.0.1
-Port: 3307
-Database: bp_webapp
-Username: root
-Password: ว่างได้
-Path mysqldump/mariadb-dump: เว้นว่างได้
-Backup Path: storage/app/backups
-```
+- `localhost` บน Windows/WAMP บางครั้ง resolve มีปัญหา
+  - แนะนำใช้ `127.0.0.1`
 
-สำหรับ MySQL บน WAMP:
+- `mariadb-dump.exe` หรือ `mysqldump.exe` อาจมี error บางเครื่อง
+  - ระบบมี fallback เป็น `PHP/PDO dump`
 
-```text
-DB Type: MySQL
-Host: 127.0.0.1
-Port: 3306
-Database: ชื่อฐานข้อมูล
-Username: root
-Password: ว่างได้ถ้าไม่มี
-Path mysqldump/mariadb-dump: เว้นว่างได้
-Backup Path: storage/app/backups
-```
+- ถ้า import Windows Task Scheduler ไม่ได้
+  - ใช้ `import-task-scheduler-tasks.bat`
+  - ตอน UAC เด้งต้องกด `Yes`
 
-## ปัญหาที่เจอและแนวทางแก้
+- ฐานข้อมูลเครื่องนี้เคยมี schema อยู่แล้ว แต่ตาราง `migrations` ว่าง
+  - ได้ sync migration state ให้ตรงกับ schema จริงแล้ว
+  - หลังจากนี้ไม่ควรใช้ `migrate:fresh` กับฐานใช้งานนี้
 
-- `localhost` บน Windows/WAMP อาจ resolve ไม่ได้ในบาง process
-- แนะนำใช้ `127.0.0.1` แทน `localhost`
-- `mariadb-dump.exe` และ `mysqldump.exe` อาจมีปัญหา `Can't create TCP/IP socket (10106)` เมื่อเรียกผ่านเว็บ
-- ระบบจึงมี fallback เป็น PHP/PDO dump
-- MySQL dump tool อาจไม่เข้ากับ MariaDB 11 บางกรณี
-- ระบบจึงเลือก dump binary ตาม `db_type`
-- ถ้าแก้ `.env` หรือ service แล้วเว็บยังใช้ค่าเดิม ให้รัน `php artisan optimize:clear` และ restart `php artisan serve`
+---
 
-## งานที่ควรทำต่อ
+## งานที่ยังเหลือ / ควรทำต่อ
 
-### 1. Retention และลบไฟล์เก่า
+### 1. Export Reports
 
-- ลบไฟล์ backup ที่เก่ากว่า `retention_days`
-- ลบ record เก่าหรือ mark เป็น expired
-- แสดงจำนวนไฟล์ที่จะถูกลบในหน้า target
+- export รายงานเป็น Excel / CSV / PDF
+- export สรุปรายวัน / รายเดือน
 
-### 2. Schedule อัตโนมัติ
+### 2. Restore แบบปลอดภัย
 
-- ใช้ Laravel Scheduler เพื่อ backup ตาม `schedule_frequency`
-- รองรับ `manual`, `daily`, `weekly`, `monthly`
-- เพิ่ม command เช่น `php artisan backup:run-scheduled`
-- ตั้ง Windows Task Scheduler ให้เรียก Laravel Scheduler ทุกนาทีหรือทุกช่วงเวลา
+- upload หรือเลือกไฟล์ backup เพื่อ restore
+- ต้องมี confirmation หลายชั้น
+- ต้องมี audit log ทุกครั้ง
+- ควรจำกัดสิทธิ์อย่างเข้มงวด
 
-### 3. Queue Job
+### 3. Target Detail Page
 
-- ย้าย Backup Now ไปทำผ่าน queue
-- ป้องกันหน้าเว็บค้างเมื่อฐานข้อมูลใหญ่
-- แสดงสถานะ `running` แบบ real-time หรือ refresh ได้
+- มีหน้า detail แยกของแต่ละ target
+- ดู backup ล่าสุดของ target เดียว
+- ดูประวัติ backup ของ target เดียว
+- กด Backup Now จากหน้า detail ได้
 
-### 4. Download และ Restore
+### 4. Notification Summary
 
-- เพิ่มปุ่ม download ไฟล์ backup
-- เพิ่มระบบ restore แบบเลือกไฟล์
-- ก่อน restore ควรมี confirmation และบันทึก audit log
-- จำกัด restore ให้ใช้เฉพาะ Admin
+- สรุปผล backup รายวันส่งให้ Admin
+- สรุป target ที่ fail บ่อย
+- สรุป target ที่ไม่ถูก backup ตามรอบ
 
-### 5. Reports
+### 5. Security เพิ่มเติม
 
-- รายงาน backup รายวัน
-- รายงาน backup รายเดือน
-- อัตราสำเร็จและล้มเหลว
-- ขนาดไฟล์รวมตาม target
-- target ที่ไม่ได้ backup ในช่วงเวลาที่กำหนด
-- export Excel/PDF
+- ตรวจสิทธิ์การเข้าถึงไฟล์ backup ให้ละเอียดขึ้น
+- ตรวจ permission ของ backup folder
+- พิจารณาแยก role ในอนาคต
 
-### 6. Notification
+### 6. Queue Monitoring
 
-- แจ้งเตือนเมื่อ backup fail
-- แจ้งเตือนผ่าน Line Notify, Email หรือระบบภายใน
-- สรุปผล backup รายวันให้ Admin
+- หน้า monitor queue / worker status
+- หน้า retry failed job
+- แสดง failed jobs ใน UI
 
-### 7. Security
+### 7. UX/Validation เพิ่มเติม
 
-- เข้ารหัส password ของ target แล้ว ปัจจุบันใช้ encrypted cast ของ Laravel
-- ควรเพิ่ม audit log สำหรับการเพิ่ม แก้ไข ลบ target
-- ควรจำกัดการเข้าถึงไฟล์ backup ไม่ให้ public download ได้โดยตรง
-- ควรกำหนด permission ของ backup folder ให้เหมาะสม
+- แสดงผลการบันทึก target ให้ชัดในหน้า list/detail
+- ปรับข้อความภาษาไทยที่ยังเพี้ยนจาก encoding ในบางไฟล์เก่า
+- เพิ่ม test ครอบ flow create/edit/backup/download/queue
 
-### 8. UI/UX เพิ่มเติม
+---
 
-- เพิ่ม filter ใน Backup History
-- ค้นหาตาม target, status, date range
-- เพิ่มหน้า target detail
-- เพิ่มปุ่ม Backup Now ในหน้า detail
-- แสดง backup ล่าสุดของแต่ละ target ใน Dashboard
+## ลำดับงานที่แนะนำต่อจากนี้
 
-## โครงสร้างตารางหลัก
+1. Export Reports
+2. Target Detail Page
+3. Notification Summary
+4. Restore แบบปลอดภัย
+5. Queue Monitoring
+6. Security เพิ่มเติม
 
-```text
-personel
-backup_targets
-backup_jobs
-cache
-jobs
-sessions
-```
+---
 
 ## หมายเหตุ
 
-ระบบตอนนี้เหมาะสำหรับเริ่มใช้งานภายในองค์กรและ backup ฐานข้อมูลขนาดเล็กถึงกลาง หากฐานข้อมูลมีขนาดใหญ่มาก ควรพิจารณาใช้ physical backup, replication, snapshot หรือ backup tool เฉพาะของ MariaDB/MySQL เพิ่มเติม
+ระบบตอนนี้สามารถใช้งานจริงในระดับจัดการ backup ภายในองค์กรได้แล้ว  
+โดยเฉพาะ flow หลักคือ login, จัดการ target, backup, history, reports, cleanup, audit logs และ automation
+
+ถ้าจะใช้งาน production มากขึ้น แนะนำเพิ่มเรื่องต่อไปนี้ร่วมด้วย:
+
+- backup verification
+- offsite copy
+- restore test
+- queue monitoring
+- notification summary
+- policy ด้านสิทธิ์และ audit ที่เข้มขึ้น

@@ -33,6 +33,7 @@ class BackupTargetController extends Controller
                 'db_type' => 'mariadb',
                 'port' => 3306,
                 'backup_path' => env('BACKUP_DEFAULT_PATH', 'storage/app/backups'),
+                'notification_emails' => env('BACKUP_ALERT_EMAILS'),
                 'schedule_frequency' => 'manual',
                 'retention_days' => 14,
                 'is_active' => true,
@@ -82,7 +83,7 @@ class BackupTargetController extends Controller
         ]);
 
         return redirect()
-            ->route('backup-targets.index')
+            ->route('backup-targets.edit', $backupTarget)
             ->with('status', "บันทึก {$backupTarget->name} แล้ว");
     }
 
@@ -158,6 +159,7 @@ class BackupTargetController extends Controller
             'password' => ['nullable', 'string'],
             'dump_binary_path' => ['nullable', 'string', 'max:255'],
             'backup_path' => ['nullable', 'string', 'max:255'],
+            'notification_emails' => ['nullable', 'string', 'max:2000'],
             'schedule_frequency' => ['required', 'in:manual,daily,weekly,monthly'],
             'schedule_time' => ['nullable', 'date_format:H:i'],
             'retention_days' => ['required', 'integer', 'between:1,3650'],
@@ -189,6 +191,7 @@ class BackupTargetController extends Controller
             'database_name' => $target->database_name,
             'username' => $target->username,
             'backup_path' => $target->backup_path,
+            'notification_emails' => $target->notification_emails,
             'schedule_frequency' => $target->schedule_frequency,
             'schedule_time' => $target->schedule_time,
             'retention_days' => $target->retention_days,

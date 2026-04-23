@@ -37,12 +37,12 @@ class BackupScheduleService
             return false;
         }
 
-        $hasRunningJob = BackupJob::query()
+        $hasPendingJob = BackupJob::query()
             ->where('backup_target_id', $target->id)
-            ->where('status', 'running')
+            ->whereIn('status', ['queued', 'running'])
             ->exists();
 
-        if ($hasRunningJob) {
+        if ($hasPendingJob) {
             return false;
         }
 

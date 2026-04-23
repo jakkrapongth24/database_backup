@@ -75,6 +75,13 @@
                     <p class="mt-2 text-xs text-slate-500">ใส่ relative path หรือ absolute path ได้ เช่น D:\DBBackups</p>
                 </div>
 
+                <div class="md:col-span-2">
+                    <label for="notification_emails" class="block text-sm font-black text-slate-700">Notification Emails</label>
+                    <textarea id="notification_emails" name="notification_emails" rows="3" placeholder="admin@example.com, dba@example.com" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none ring-emerald-400/20 transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4">{{ old('notification_emails', $target->notification_emails) }}</textarea>
+                    <p class="mt-2 text-xs text-slate-500">ใส่อีเมลคั่นด้วย comma หรือขึ้นบรรทัดใหม่ ระบบจะส่งแจ้งเตือนเมื่อ backup ล้มเหลว ถ้าเว้นว่างจะ fallback ไปที่ค่า `BACKUP_ALERT_EMAILS` ใน `.env`</p>
+                    @error('notification_emails') <p class="mt-2 text-sm font-bold text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
                 <div>
                     <label for="schedule_frequency" class="block text-sm font-black text-slate-700">รอบการ Backup</label>
                     <select id="schedule_frequency" name="schedule_frequency" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none ring-emerald-400/20 transition focus:border-emerald-400 focus:ring-4">

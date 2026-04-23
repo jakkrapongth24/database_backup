@@ -27,6 +27,8 @@ class User extends Authenticatable
 {
     use Notifiable, SoftDeletes;
 
+    protected $connection = 'bp_webapp';
+
     protected $table = 'personel';
 
     public function getNameAttribute(): string

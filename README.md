@@ -1,58 +1,74 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# DB Backup Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel application for managing MariaDB/MySQL backup targets, running manual and scheduled backups, keeping backup history, and auditing actions.
 
-## About Laravel
+## Quick Start
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+1. Configure `.env`
+2. Clear cached config when `.env` changes
+3. Start the web app
+4. Start the queue worker
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan optimize:clear
+php artisan serve --host=127.0.0.1 --port=8081
+php artisan queue:work --tries=1
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+If you use Vite during development:
 
-## Contributing
+```bash
+npm run dev
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Or use the prepared shortcuts:
 
-## Code of Conduct
+```bash
+composer dev
+composer dev:backend
+composer queue:work
+composer schedule:work
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Windows `.bat` helpers are available here:
 
-## Security Vulnerabilities
+- `scripts/windows/start-dev.bat`
+- `scripts/windows/start-worker.bat`
+- `scripts/windows/start-scheduler.bat`
+- `scripts/windows/import-task-scheduler-tasks.bat`
+- `scripts/windows/import-task-scheduler-tasks.ps1`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Windows Task Scheduler import files are available here:
 
-## License
+- `scripts/windows/task-scheduler/db-backup-scheduler.xml`
+- `scripts/windows/task-scheduler/db-backup-queue-worker.xml`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The one-click importer will request Administrator permission through Windows UAC before importing tasks.
+
+## Important Queue Note
+
+Manual backup now runs through Laravel queue.
+
+If a backup stays at `QUEUED`, the usual cause is that no queue worker is running.
+
+## Useful Commands
+
+```bash
+php artisan backup:run-scheduled --dry-run
+php artisan backup:cleanup --dry-run
+php artisan schedule:list
+php artisan queue:work --tries=1
+php artisan schedule:work
+```
+
+## Authentication
+
+Login users are read from `bp_webapp.personel`.
+
+## Default Local Paths
+
+```env
+BACKUP_DEFAULT_PATH=storage/app/backups
+BACKUP_MARIADB_DUMP_BINARY_PATH=C:/wamp64/bin/mariadb/mariadb11.4.9/bin/mariadb-dump.exe
+BACKUP_MYSQL_DUMP_BINARY_PATH=C:/wamp64/bin/mysql/mysql8.4.7/bin/mysqldump.exe
+```

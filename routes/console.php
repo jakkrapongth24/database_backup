@@ -154,18 +154,23 @@ Artisan::command('backup:run-scheduled {--target= : Run only one backup target i
     }
 
     $failed = 0;
+    $queued = 0;
 
     foreach ($dueTargets as $backupTarget) {
-        $this->info("Running backup: {$backupTarget->name}");
+        $this->info("Queueing backup: {$backupTarget->name}");
 
-        $job = $backupService->run($backupTarget);
-
-        if ($job->status === 'success') {
-            $this->info("Backup success: {$job->file_name}");
-        } else {
+        try {
+            $job = $backupService->queue($backupTarget);
+            $queued++;
+            $this->info("Queued backup job #{$job->id} for {$backupTarget->name}");
+        } catch (Throwable $exception) {
             $failed++;
-            $this->error("Backup failed: {$job->error_message}");
+            $this->error("Cannot queue backup for {$backupTarget->name}: {$exception->getMessage()}");
         }
+    }
+
+    if ($queued > 0) {
+        $this->info("Queued {$queued} backup job(s).");
     }
 
     return $failed > 0 ? 1 : 0;

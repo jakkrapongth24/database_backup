@@ -23,9 +23,10 @@
         <section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             @foreach ([
                 ['label' => 'ทั้งหมด', 'value' => $summary['total'], 'class' => 'bg-slate-100 text-slate-700'],
+                ['label' => 'Queued', 'value' => $summary['queued'], 'class' => 'bg-amber-100 text-amber-700'],
                 ['label' => 'สำเร็จ', 'value' => $summary['success'], 'class' => 'bg-emerald-100 text-emerald-700'],
                 ['label' => 'ล้มเหลว', 'value' => $summary['failed'], 'class' => 'bg-rose-100 text-rose-700'],
-                ['label' => 'กำลังทำงาน', 'value' => $summary['running'], 'class' => 'bg-amber-100 text-amber-700'],
+                ['label' => 'กำลังทำงาน', 'value' => $summary['running'], 'class' => 'bg-orange-100 text-orange-700'],
             ] as $item)
                 <article class="rounded-[1.75rem] border border-white bg-white p-5 shadow-sm shadow-slate-200/80">
                     <p class="text-sm font-medium text-slate-500">{{ $item['label'] }}</p>
@@ -58,7 +59,7 @@
                     <label class="text-sm font-medium text-slate-600">Status</label>
                     <select name="status" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-emerald-300 focus:bg-white">
                         <option value="">ทั้งหมด</option>
-                        @foreach (['success' => 'Success', 'failed' => 'Failed', 'running' => 'Running'] as $value => $label)
+                        @foreach (['queued' => 'Queued', 'success' => 'Success', 'failed' => 'Failed', 'running' => 'Running'] as $value => $label)
                             <option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
@@ -99,7 +100,7 @@
                                     <div class="mt-2 break-all text-xs text-slate-400">{{ $job->dump_binary_path }}</div>
                                 </td>
                                 <td class="px-6 py-5">
-                                    <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $job->status === 'success' ? 'bg-emerald-100 text-emerald-700' : ($job->status === 'failed' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700') }}">
+                                    <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $job->status === 'success' ? 'bg-emerald-100 text-emerald-700' : ($job->status === 'failed' ? 'bg-rose-100 text-rose-700' : ($job->status === 'queued' ? 'bg-amber-100 text-amber-700' : 'bg-orange-100 text-orange-700')) }}">
                                         {{ strtoupper($job->status) }}
                                     </span>
                                 </td>
@@ -116,7 +117,7 @@
                                             @endif
                                         </div>
                                     @else
-                                        <span class="text-sm text-slate-400">-</span>
+                                        <span class="text-sm text-slate-400">{{ $job->status === 'queued' ? 'Waiting for queue worker' : '-' }}</span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-5 text-sm text-slate-600">

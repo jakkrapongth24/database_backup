@@ -2,24 +2,70 @@
 
 namespace App\Services;
 
+use App\Jobs\RunBackupJob;
+use App\Mail\BackupFailedMail;
 use App\Models\BackupJob;
 use App\Models\BackupTarget;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 use Throwable;
 
 class DatabaseBackupService
 {
+    public function queue(BackupTarget $target, ?int $userId = null): BackupJob
+    {
+        $job = BackupJob::create([
+            'backup_target_id' => $target->id,
+            'status' => 'queued',
+            'created_by' => $userId,
+        ]);
+
+        app(AuditLogger::class)->log('backup.queued', "Backup queued for {$target->name}.", $job, [
+            'target' => $target->name,
+            'backup_job_id' => $job->id,
+            'triggered_by_user_id' => $userId,
+        ], $userId);
+
+        RunBackupJob::dispatch($job->id);
+
+        return $job->refresh();
+    }
+
     public function run(BackupTarget $target, ?int $userId = null): BackupJob
     {
-        $startedAt = now();
         $job = BackupJob::create([
             'backup_target_id' => $target->id,
             'status' => 'running',
-            'started_at' => $startedAt,
+            'started_at' => now(),
             'created_by' => $userId,
         ]);
+
+        return $this->perform($job, $target, $userId);
+    }
+
+    public function runQueuedJob(BackupJob $job): BackupJob
+    {
+        $target = $job->target()->firstOrFail();
+        $userId = $job->created_by;
+
+        $job->update([
+            'status' => 'running',
+            'started_at' => now(),
+            'error_message' => null,
+        ]);
+
+        return $this->perform($job->refresh(), $target, $userId);
+    }
+
+    private function perform(BackupJob $job, BackupTarget $target, ?int $userId = null): BackupJob
+    {
+        $startedAt = $job->started_at ?? now();
+
+        if ($job->started_at === null) {
+            $job->update(['started_at' => $startedAt]);
+        }
 
         try {
             $dumpBinary = $this->resolveDumpBinary($target);
@@ -88,9 +134,54 @@ class DatabaseBackupService
                 'duration_seconds' => $job->duration_seconds,
                 'triggered_by_user_id' => $userId,
             ], $userId);
+
+            $this->sendFailureNotification($job->refresh()->load('target'));
         }
 
         return $job->refresh();
+    }
+
+    private function sendFailureNotification(BackupJob $job): void
+    {
+        $recipients = $this->resolveNotificationRecipients($job->target);
+
+        if ($recipients === []) {
+            return;
+        }
+
+        try {
+            Mail::to($recipients)->send(new BackupFailedMail($job));
+
+            app(AuditLogger::class)->log('backup.notification_sent', "Failure notification sent for {$job->target?->name}.", $job, [
+                'backup_job_id' => $job->id,
+                'recipients' => $recipients,
+            ], $job->created_by);
+        } catch (Throwable $exception) {
+            app(AuditLogger::class)->log('backup.notification_failed', "Failure notification could not be sent for {$job->target?->name}.", $job, [
+                'backup_job_id' => $job->id,
+                'recipients' => $recipients,
+                'error' => $exception->getMessage(),
+            ], $job->created_by);
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function resolveNotificationRecipients(?BackupTarget $target): array
+    {
+        $targetRecipients = $target?->notificationEmailList() ?? [];
+
+        if ($targetRecipients !== []) {
+            return $targetRecipients;
+        }
+
+        return collect(preg_split('/[\r\n,;]+/', (string) env('BACKUP_ALERT_EMAILS')) ?: [])
+            ->map(fn (string $email): string => trim($email))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function dumpToGzip(BackupTarget $target, string $dumpBinary, string $filePath): void
@@ -214,7 +305,6 @@ class DatabaseBackupService
                 $target->database_name,
             ];
 
-            // Some local WAMP/MySQL builds fail with advanced options from PHP processes.
             $commands[] = [
                 ...$base,
                 $target->database_name,

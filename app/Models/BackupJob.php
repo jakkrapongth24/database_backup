@@ -31,6 +31,11 @@ class BackupJob extends Model
         ];
     }
 
+    public function isQueued(): bool
+    {
+        return $this->status === 'queued';
+    }
+
     public function target(): BelongsTo
     {
         return $this->belongsTo(BackupTarget::class, 'backup_target_id');

@@ -33,6 +33,8 @@
                 ['title' => 'Due Now', 'value' => $stats['dueTargets'], 'desc' => 'ถึงรอบ backup แล้ว', 'badge' => 'bg-amber-100 text-amber-700'],
                 ['title' => 'Connection OK', 'value' => $stats['connectionOk'], 'desc' => 'เชื่อมต่อสำเร็จ', 'badge' => 'bg-lime-100 text-lime-700'],
                 ['title' => 'Connection Failed', 'value' => $stats['connectionFailed'], 'desc' => 'ควรตรวจสอบ', 'badge' => 'bg-rose-100 text-rose-700'],
+                ['title' => 'Backup Queued', 'value' => $stats['queuedBackups'], 'desc' => 'งานที่รอ queue worker ประมวลผล', 'badge' => 'bg-amber-100 text-amber-700'],
+                ['title' => 'Backup Running', 'value' => $stats['runningBackups'], 'desc' => 'งานที่กำลังสร้างไฟล์ backup', 'badge' => 'bg-orange-100 text-orange-700'],
                 ['title' => 'Backup Success', 'value' => $stats['successfulBackups'], 'desc' => 'งานที่สำเร็จทั้งหมด', 'badge' => 'bg-teal-100 text-teal-700'],
                 ['title' => 'Backup Failed', 'value' => $stats['failedBackups'], 'desc' => 'งานที่ล้มเหลวทั้งหมด', 'badge' => 'bg-red-100 text-red-700'],
             ] as $item)

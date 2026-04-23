@@ -19,7 +19,7 @@ class BackupJobController extends Controller
     {
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'in:running,success,failed'],
+            'status' => ['nullable', 'in:queued,running,success,failed'],
             'target_id' => ['nullable', 'integer', 'exists:backup_targets,id'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
@@ -52,6 +52,7 @@ class BackupJobController extends Controller
 
         $summary = [
             'total' => (clone $summaryQuery)->count(),
+            'queued' => (clone $summaryQuery)->where('status', 'queued')->count(),
             'success' => (clone $summaryQuery)->where('status', 'success')->count(),
             'failed' => (clone $summaryQuery)->where('status', 'failed')->count(),
             'running' => (clone $summaryQuery)->where('status', 'running')->count(),
@@ -68,17 +69,11 @@ class BackupJobController extends Controller
 
         $audit->log('backup.requested', "Manual backup requested for {$backupTarget->name}.", $backupTarget);
 
-        $job = $backupService->run($backupTarget, Auth::id());
-
-        if ($job->status === 'success') {
-            return redirect()
-                ->route('backup-jobs.index')
-                ->with('status', "Backup {$backupTarget->name} completed: {$job->file_name}");
-        }
+        $job = $backupService->queue($backupTarget, Auth::id());
 
         return redirect()
             ->route('backup-jobs.index')
-            ->with('error', "Backup {$backupTarget->name} failed: {$job->error_message}");
+            ->with('status', "Backup {$backupTarget->name} queued successfully. Job #{$job->id} is waiting for queue worker.");
     }
 
     public function download(BackupJob $backupJob, AuditLogger $audit): BinaryFileResponse|RedirectResponse

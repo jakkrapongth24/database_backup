@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'password',
     'dump_binary_path',
     'backup_path',
+    'notification_emails',
     'schedule_frequency',
     'schedule_time',
     'retention_days',
@@ -59,5 +60,18 @@ class BackupTarget extends Model
     public function jobs(): HasMany
     {
         return $this->hasMany(BackupJob::class);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function notificationEmailList(): array
+    {
+        return collect(preg_split('/[\r\n,;]+/', (string) $this->notification_emails) ?: [])
+            ->map(fn (string $email): string => trim($email))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 }
