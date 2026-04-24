@@ -125,6 +125,58 @@
             </div>
         </section>
 
+        <section class="mt-6 rounded-[2rem] border border-rose-100 bg-white p-6 shadow-sm shadow-slate-200/80">
+            <div class="flex items-start gap-4">
+                <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-100 text-lg font-semibold text-rose-700">R</div>
+                <div>
+                    <h2 class="text-2xl font-semibold text-slate-950">Restore Queue และ Restore Client</h2>
+                    <p class="mt-2 text-sm leading-6 text-slate-500">
+                        การ Restore ทำผ่าน queue แล้ว หลังจากกดปุ่ม Restore ระบบจะสร้าง restore job เป็นสถานะ <span class="font-mono font-medium text-slate-900">QUEUED</span>
+                        และให้ queue worker เป็นตัวทำงานจริง เพื่อลดปัญหาหน้าเว็บค้างเมื่อไฟล์ SQL มีขนาดใหญ่
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-6 grid gap-4 lg:grid-cols-2">
+                <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                    <p class="text-lg font-semibold text-slate-950">ต้องเปิด Queue Worker</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-500">ถ้า worker ไม่ทำงาน restore job จะค้างที่ QUEUED เหมือน backup job</p>
+                    <div class="mt-4 rounded-2xl bg-white p-4 font-mono text-sm text-slate-900">{{ $queueWorkCommand }}</div>
+                    <div class="mt-3 rounded-2xl bg-white p-4 font-mono text-sm text-slate-900">{{ $workerBatPath }}</div>
+                </div>
+
+                <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                    <p class="text-lg font-semibold text-slate-950">BACKUP_RESTORE_BINARY_PATH</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-500">
+                        ใช้ระบุ path ของ client สำหรับ restore เช่น <span class="font-mono">mariadb.exe</span> หรือ <span class="font-mono">mysql.exe</span>
+                        ถ้าไม่ตั้งค่า ระบบจะพยายามหาให้อัตโนมัติจาก dump path ของ target และ path WAMP มาตรฐาน
+                    </p>
+                    <div class="mt-4 break-all rounded-2xl bg-white p-4 font-mono text-sm text-slate-900">{{ $restoreBinaryPath }}</div>
+                </div>
+            </div>
+
+            <div class="mt-6 grid gap-4 lg:grid-cols-3">
+                <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+                    <p class="text-lg font-semibold text-emerald-950">Pre-check ก่อน Restore</p>
+                    <p class="mt-2 text-sm leading-6 text-emerald-800/80">กดปุ่มตรวจสอบก่อน Restore เพื่อเช็ค connection, client binary, ไฟล์ SQL/Gzip และโฟลเดอร์ safety backup โดยยังไม่เขียนข้อมูลลง database</p>
+                </div>
+                <div class="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+                    <p class="text-lg font-semibold text-amber-950">ติดตามสถานะ</p>
+                    <p class="mt-2 text-sm leading-6 text-amber-900/80">ดูผลได้ที่เมนู Restore History สถานะหลักคือ QUEUED, RUNNING, SUCCESS และ FAILED</p>
+                </div>
+                <div class="rounded-3xl border border-sky-200 bg-sky-50 p-5">
+                    <p class="text-lg font-semibold text-sky-950">Safety Backup</p>
+                    <p class="mt-2 text-sm leading-6 text-sky-900/80">ค่าเริ่มต้นจะ backup target ปลายทางก่อน restore จริง เพื่อให้มีจุดย้อนกลับถ้าไฟล์ restore ไม่ถูกต้อง</p>
+                </div>
+            </div>
+
+            <div class="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <p class="text-lg font-semibold text-slate-950">ตัวอย่างค่าใน .env</p>
+                <pre class="mt-4 overflow-x-auto rounded-2xl bg-white p-4 text-sm leading-6 text-slate-900">BACKUP_RESTORE_BINARY_PATH=C:/wamp64/bin/mariadb/mariadb11.4.9/bin/mariadb.exe
+QUEUE_CONNECTION=database</pre>
+            </div>
+        </section>
+
         <section class="mt-6 rounded-[2rem] border border-white bg-white p-6 shadow-sm shadow-slate-200/80">
             <div class="flex items-start gap-4">
                 <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-lg font-semibold text-emerald-700">3</div>

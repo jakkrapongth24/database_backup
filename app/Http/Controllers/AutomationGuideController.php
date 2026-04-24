@@ -17,6 +17,7 @@ class AutomationGuideController extends Controller
             'scheduledBackupCommand' => 'php artisan backup:run-scheduled --dry-run',
             'cleanupCommand' => 'php artisan backup:cleanup --dry-run',
             'dailySummaryCommand' => 'php artisan backup:send-daily-summary --dry-run',
+            'restoreBinaryPath' => env('BACKUP_RESTORE_BINARY_PATH') ?: 'Auto detect from target dump path, mariadb.exe, or mysql.exe',
             'workerBatPath' => base_path('scripts/windows/start-worker.bat'),
             'schedulerBatPath' => base_path('scripts/windows/start-scheduler.bat'),
             'devBatPath' => base_path('scripts/windows/start-dev.bat'),

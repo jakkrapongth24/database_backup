@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
         ->name('queue-monitor.retry');
     Route::get('/restore', [RestoreController::class, 'index'])->name('restore.index');
     Route::post('/restore', [RestoreController::class, 'store'])->name('restore.store');
+    Route::get('/restore-history', [RestoreController::class, 'history'])->name('restore-history.index');
     Route::get('/reports', ReportController::class)->name('reports.index');
     Route::get('/reports/export/csv', [ReportController::class, 'exportCsv'])->name('reports.export.csv');
     Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');

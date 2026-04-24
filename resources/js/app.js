@@ -32,6 +32,10 @@ if (flashError) {
 
 document.querySelectorAll('form.js-confirm').forEach((form) => {
     form.addEventListener('submit', async (event) => {
+        if (event.submitter?.dataset.skipConfirm === '1') {
+            return;
+        }
+
         event.preventDefault();
 
         const result = await Swal.fire({

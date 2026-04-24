@@ -62,6 +62,11 @@ class BackupTarget extends Model
         return $this->hasMany(BackupJob::class);
     }
 
+    public function restoreJobs(): HasMany
+    {
+        return $this->hasMany(RestoreJob::class);
+    }
+
     /**
      * @return array<int, string>
      */
