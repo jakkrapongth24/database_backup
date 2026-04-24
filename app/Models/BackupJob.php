@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'backup_target_id',
@@ -16,6 +17,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'file_path',
     'file_size',
     'dump_binary_path',
+    'verification_status',
+    'verified_at',
+    'verification_message',
+    'offsite_status',
+    'offsite_copied_at',
+    'offsite_path',
+    'offsite_message',
     'error_message',
     'created_by',
 ])]
@@ -28,6 +36,8 @@ class BackupJob extends Model
             'finished_at' => 'datetime',
             'duration_seconds' => 'integer',
             'file_size' => 'integer',
+            'verified_at' => 'datetime',
+            'offsite_copied_at' => 'datetime',
         ];
     }
 
@@ -39,6 +49,11 @@ class BackupJob extends Model
     public function target(): BelongsTo
     {
         return $this->belongsTo(BackupTarget::class, 'backup_target_id');
+    }
+
+    public function restoreDrills(): HasMany
+    {
+        return $this->hasMany(RestoreDrill::class);
     }
 
     public function getHumanFileSizeAttribute(): string

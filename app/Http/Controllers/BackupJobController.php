@@ -56,6 +56,10 @@ class BackupJobController extends Controller
             'success' => (clone $summaryQuery)->where('status', 'success')->count(),
             'failed' => (clone $summaryQuery)->where('status', 'failed')->count(),
             'running' => (clone $summaryQuery)->where('status', 'running')->count(),
+            'verified' => (clone $summaryQuery)->where('verification_status', 'passed')->count(),
+            'verification_failed' => (clone $summaryQuery)->where('verification_status', 'failed')->count(),
+            'offsite_copied' => (clone $summaryQuery)->where('offsite_status', 'copied')->count(),
+            'offsite_failed' => (clone $summaryQuery)->where('offsite_status', 'failed')->count(),
         ];
 
         return view('backup-jobs.index', compact('jobs', 'targets', 'filters', 'summary'));

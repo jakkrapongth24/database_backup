@@ -12,13 +12,14 @@
         $navItems = [
             ['label' => 'Dashboard', 'route' => 'dashboard', 'href' => route('dashboard'), 'icon' => 'grid'],
             ['label' => 'Backup Targets', 'route' => 'backup-targets.*', 'href' => route('backup-targets.index'), 'icon' => 'database'],
-            ['label' => 'Backup History', 'route' => 'backup-jobs.*', 'href' => route('backup-jobs.index'), 'icon' => 'history'],
+            ['label' => 'Backup History', 'route' => 'backup-jobs.*', 'href' => route('backup-jobs.index'), 'icon' => 'backup-history'],
             ['label' => 'Restore', 'route' => 'restore.*', 'href' => route('restore.index'), 'icon' => 'restore'],
-            ['label' => 'Restore History', 'route' => 'restore-history.*', 'href' => route('restore-history.index'), 'icon' => 'history'],
-            ['label' => 'Queue Monitor', 'route' => 'queue-monitor.*', 'href' => route('queue-monitor.index'), 'icon' => 'history'],
-            ['label' => 'Reports', 'route' => 'reports.*', 'href' => route('reports.index'), 'icon' => 'report'],
+            ['label' => 'Restore History', 'route' => 'restore-history.*', 'href' => route('restore-history.index'), 'icon' => 'restore-history'],
+            ['label' => 'Restore Drills', 'route' => 'restore-drills.*', 'href' => route('restore-drills.index'), 'icon' => 'drill'],
+            ['label' => 'Queue Monitor', 'route' => 'queue-monitor.*', 'href' => route('queue-monitor.index'), 'icon' => 'queue'],
+            ['label' => 'Reports', 'route' => 'reports.*', 'href' => route('reports.index'), 'icon' => 'reports'],
             ['label' => 'Audit Logs', 'route' => 'audit-logs.*', 'href' => route('audit-logs.index'), 'icon' => 'audit'],
-            ['label' => 'Automation Guide', 'route' => 'automation-guide', 'href' => route('automation-guide'), 'icon' => 'clock'],
+            ['label' => 'Automation Guide', 'route' => 'automation-guide', 'href' => route('automation-guide'), 'icon' => 'automation'],
         ];
     @endphp
 
@@ -28,8 +29,8 @@
             data-flash-error="{{ session('error') }}"
             class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]"
         >
-            <aside class="hidden border-r border-emerald-950/10 bg-[#09251f] text-white lg:flex lg:min-h-screen lg:flex-col">
-                <div class="px-7 py-7">
+            <aside class="hidden border-r border-emerald-950/10 bg-[#09251f] text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+                <div class="shrink-0 px-7 py-7">
                     <div class="flex items-center gap-3">
                         <div class="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-400 text-xl font-black text-emerald-950 shadow-lg shadow-emerald-950/30">
                             DB
@@ -41,7 +42,7 @@
                     </div>
                 </div>
 
-                <nav class="flex-1 space-y-2 px-4">
+                <nav class="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-4">
                     @foreach ($navItems as $item)
                         <a
                             href="{{ $item['href'] }}"
@@ -52,6 +53,22 @@
                                     <span class="text-lg">▦</span>
                                 @elseif ($item['icon'] === 'database')
                                     <span class="text-lg">◉</span>
+                                @elseif ($item['icon'] === 'backup-history')
+                                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path><path d="M12 7v5l3 2"></path></svg>
+                                @elseif ($item['icon'] === 'restore')
+                                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v6h-6"></path><path d="M12 8v8"></path><path d="M8 12l4 4 4-4"></path></svg>
+                                @elseif ($item['icon'] === 'restore-history')
+                                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5v5h5"></path><path d="M4.6 10A8 8 0 1 0 7 5.5"></path><path d="M12 8v4l2.5 1.5"></path><path d="M16 19h5"></path></svg>
+                                @elseif ($item['icon'] === 'drill')
+                                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4l6 6"></path><path d="M18 8l-9.5 9.5a3 3 0 0 1-4.2 0 3 3 0 0 1 0-4.2L13.8 3.8"></path><path d="M5 19l-2 2"></path><path d="M9 15l-3-3"></path></svg>
+                                @elseif ($item['icon'] === 'queue')
+                                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><circle cx="4" cy="6" r="1"></circle><circle cx="4" cy="12" r="1"></circle><circle cx="4" cy="18" r="1"></circle></svg>
+                                @elseif ($item['icon'] === 'reports')
+                                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5"></path><path d="M4 19h16"></path><rect x="7" y="11" width="3" height="5" rx="1"></rect><rect x="12" y="7" width="3" height="9" rx="1"></rect><rect x="17" y="4" width="3" height="12" rx="1"></rect></svg>
+                                @elseif ($item['icon'] === 'audit')
+                                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"></path><path d="M9 12l2 2 4-4"></path></svg>
+                                @elseif ($item['icon'] === 'automation')
+                                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M4.9 4.9l2.1 2.1"></path><path d="M17 17l2.1 2.1"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="M4.9 19.1 7 17"></path><path d="M17 7l2.1-2.1"></path></svg>
                                 @else
                                     <span class="text-lg">↺</span>
                                 @endif
@@ -61,7 +78,7 @@
                     @endforeach
                 </nav>
 
-                <div class="px-4 py-5">
+                <div class="shrink-0 px-4 py-5">
                     <div class="rounded-3xl border border-white/10 bg-white/10 p-4">
                         <p class="text-sm font-bold text-white">{{ auth()->user()->name }}</p>
                         <p class="mt-1 text-xs text-emerald-100/70">Admin</p>

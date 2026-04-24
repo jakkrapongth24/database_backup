@@ -631,3 +631,357 @@ scripts/windows/start-worker.bat
 ### งานที่เหลือ
 
 ตอนนี้งานหลักตามแผน Restore/Security/UX ที่เราต่อกันมาถือว่าครบแล้วครับ งานที่เหลือเป็นงานเสริมอนาคต เช่น backup verification, offsite copy, restore drill/report รายเดือน, แก้ encoding ภาษาไทยไฟล์เก่า และเพิ่ม coverage flow อื่น ๆ ให้ละเอียดขึ้น.
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Backup Verification)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่มระบบตรวจสอบไฟล์ backup หลัง backup สำเร็จ
+- เพิ่ม migration `2026_04_24_000004_add_verification_to_backup_jobs_table.php`
+- เพิ่ม field ใน `backup_jobs`
+  - `verification_status`
+  - `verified_at`
+  - `verification_message`
+- เพิ่ม `BackupVerificationService`
+  - ตรวจว่า backup job มี path ของไฟล์
+  - ตรวจว่าไฟล์มีอยู่จริง
+  - ตรวจว่าไฟล์อ่านได้
+  - ตรวจว่าไฟล์ไม่ว่าง
+  - ถ้าเป็น `.gz` จะลองเปิดอ่านด้วย `gzopen/gzread`
+- ผูก verification เข้า `DatabaseBackupService`
+  - หลัง dump สำเร็จ ระบบจะ verify ไฟล์ทันที
+  - ถ้า verify ผ่าน จะบันทึก `verification_status = passed`
+  - ถ้า verify ไม่ผ่าน จะบันทึก `verification_status = failed` และถือว่า backup job ล้มเหลว
+- เพิ่ม audit log
+  - `backup.verified`
+  - `backup.verification_failed`
+- เพิ่มคำสั่ง Artisan สำหรับตรวจ backup ย้อนหลัง
+
+```bash
+php artisan backup:verify --dry-run
+php artisan backup:verify
+php artisan backup:verify --target=1
+php artisan backup:verify --job=1
+```
+
+- เพิ่มสถานะ verification ในหน้า `Backup History`
+  - summary `Verified`
+  - summary `Verify Failed`
+  - badge `VERIFY PASSED` / `VERIFY FAILED` ในแต่ละรายการ
+  - แสดงข้อความผล verification ใต้ path ของไฟล์
+- เพิ่ม test ใหม่ `tests/Feature/BackupVerificationTest.php`
+  - verify ไฟล์ `.sql.gz` ที่อ่านได้
+  - บันทึก failure เมื่อไฟล์หาย
+  - ตรวจคำสั่ง `backup:verify --dry-run`
+- รัน migration เฉพาะไฟล์ใหม่ในฐานข้อมูลจริงสำเร็จแล้ว
+
+```bash
+php artisan migrate --path=database/migrations/2026_04_24_000004_add_verification_to_backup_jobs_table.php --force
+```
+
+### ตรวจสอบแล้ว
+
+- `php artisan test` ผ่าน 12 tests
+- `vendor\bin\pint.bat --dirty` ผ่าน
+- `npm.cmd run build` ผ่าน
+- `php -l app\Services\BackupVerificationService.php` ผ่าน
+- `php -l routes\console.php` ผ่าน
+- `php -l tests\Feature\BackupVerificationTest.php` ผ่าน
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- เพิ่ม Offsite Copy เช่น copy backup ไปอีก drive หรือ network share หลัง verify ผ่าน
+- เพิ่ม Restore Drill / Restore Report รายเดือน เพื่อสุ่มทดสอบว่า backup restore ได้จริง
+- เพิ่ม notification เมื่อ verification failed แยกจาก backup failed ถ้าต้องการข้อความเฉพาะทาง
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+- ค่อย ๆ แก้ encoding ภาษาไทยในไฟล์เก่าที่แสดงเป็น mojibake ในบางจุด
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบทำ Restore Drill ให้ง่ายขึ้น)
+
+### ทำเพิ่มแล้ว
+
+- ปรับหน้า `Restore Drills` ให้ใช้งานผ่านหน้าเว็บแบบกดปุ่มเดียว
+- เพิ่มปุ่ม `ตรวจ Restore ตอนนี้`
+- เพิ่ม dropdown ให้เลือกได้ว่าจะตรวจ
+  - ทุก target ที่เปิดใช้งาน
+  - หรือเลือก target เดียว
+- เพิ่มคำอธิบายบนหน้าเว็บเป็น 3 ขั้นตอนสั้น ๆ
+  - เลือก target หรือปล่อยเป็นตรวจทั้งหมด
+  - กดปุ่มตรวจ Restore ตอนนี้
+  - ดูผลด้านล่าง ถ้าขึ้น SUCCESS คือ backup พร้อมใช้
+- แก้ข้อความในหน้า `Restore Drills` ให้เป็นภาษาไทยอ่านง่ายขึ้น
+- เพิ่ม route `POST /restore-drills/run`
+- เพิ่ม `RestoreDrillController::run()`
+  - รับ target ที่เลือก
+  - รัน `RestoreDrillService` ให้ทันที
+  - redirect กลับมาหน้าเดิมพร้อมสรุปผลผ่าน/ไม่ผ่าน
+- เพิ่ม test ว่ากดปุ่มจากหน้าเว็บแล้วสร้าง restore drill record ได้จริง
+
+### วิธีใช้งานแบบง่าย
+
+1. เข้าเมนู `Restore Drills`
+2. เลือก target หรือปล่อยเป็น `ตรวจทุก Target ที่เปิดใช้งาน`
+3. กด `ตรวจ Restore ตอนนี้`
+4. ดูผลด้านล่าง
+   - `SUCCESS` = backup พร้อมใช้
+   - `FAILED` = มีจุดที่ต้องแก้ เช่น ไฟล์หาย หรือ backup ยังไม่ผ่าน verification
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- เพิ่มปุ่ม export รายงาน Restore Drill เป็น CSV/Excel/PDF
+- เพิ่ม drill แบบ restore เข้า test database จริง โดยใช้ target ทดสอบแยกจาก production
+- เพิ่ม retention cleanup ฝั่ง offsite path ถ้าต้องการลบไฟล์สำรองปลายทางตามอายุ
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Export Restore Drill Report)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่มปุ่ม export ในหน้า `Restore Drills`
+  - `CSV`
+  - `Excel`
+  - `PDF`
+- export จะใช้ filter ปัจจุบันจากหน้าเว็บร่วมด้วย เช่น target, status, date range
+- เพิ่ม routes
+  - `GET /restore-drills/export/csv`
+  - `GET /restore-drills/export/excel`
+  - `GET /restore-drills/export/pdf`
+- เพิ่ม method ใน `RestoreDrillController`
+  - `exportCsv()`
+  - `exportExcel()`
+  - `exportPdf()`
+- เพิ่ม view export
+  - `resources/views/restore-drills/export-excel.blade.php`
+  - `resources/views/restore-drills/export-pdf.blade.php`
+- ปรับ `RestoreDrillController` ให้แยก logic filter/query/summary/export report ออกเป็น helper method เพื่อใช้ซ้ำระหว่างหน้าเว็บและ export
+- แก้ข้อความไทยใน `RestoreDrillController` ให้แสดงถูกต้อง
+- เขียน `tests/Feature/RestoreDrillTest.php` ใหม่ให้สะอาดจาก mojibake
+- เพิ่ม test สำหรับ export Restore Drill report
+
+### ตรวจสอบแล้ว
+
+- `php artisan test --filter=RestoreDrillTest` ผ่าน 7 tests
+- `php -l app\Http\Controllers\RestoreDrillController.php` ผ่าน
+- `php -l tests\Feature\RestoreDrillTest.php` ผ่าน
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- เพิ่ม drill แบบ restore เข้า test database จริง โดยใช้ target ทดสอบแยกจาก production
+- เพิ่ม retention cleanup ฝั่ง offsite path ถ้าต้องการลบไฟล์สำรองปลายทางตามอายุ
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Offsite Copy)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่มระบบ Offsite Copy หลัง backup ผ่าน verification
+- เพิ่ม migration `2026_04_24_000005_add_offsite_copy_to_backup_jobs_table.php`
+- เพิ่ม field ใน `backup_jobs`
+  - `offsite_status`
+  - `offsite_copied_at`
+  - `offsite_path`
+  - `offsite_message`
+- เพิ่ม `BackupOffsiteCopyService`
+  - ถ้าไม่ได้ตั้ง `BACKUP_OFFSITE_PATH` จะบันทึก `offsite_status = skipped`
+  - ถ้าตั้ง `BACKUP_OFFSITE_PATH` จะ copy ไฟล์ backup ไปยังปลายทางสำรอง
+  - แยกโฟลเดอร์ปลายทางตามชื่อ target
+  - ตรวจขนาดไฟล์ต้นทางและปลายทางว่าตรงกันหลัง copy
+  - ถ้า copy ไม่สำเร็จจะบันทึก `offsite_status = failed`
+- ผูก Offsite Copy เข้า `DatabaseBackupService`
+  - flow หลัง backup สำเร็จตอนนี้คือ dump -> verify -> offsite copy -> retention cleanup
+- เพิ่ม audit log
+  - `backup.offsite_copied`
+  - `backup.offsite_failed`
+- เพิ่มคำสั่ง Artisan สำหรับ copy backup ที่ verify ผ่านแล้วย้อนหลัง
+
+```bash
+php artisan backup:copy-offsite --dry-run
+php artisan backup:copy-offsite
+php artisan backup:copy-offsite --target=1
+php artisan backup:copy-offsite --job=1
+```
+
+- เพิ่มค่าใน `.env.example`
+
+```env
+BACKUP_OFFSITE_PATH=
+```
+
+- เพิ่มสถานะ Offsite ในหน้า `Backup History`
+  - summary `Offsite Copied`
+  - summary `Offsite Failed`
+  - badge `OFFSITE COPIED` / `OFFSITE FAILED` / `OFFSITE SKIPPED`
+  - แสดง offsite path หรือข้อความสถานะใต้ path ของไฟล์
+- เพิ่มคำอธิบายในหน้า `Automation Guide`
+  - อธิบาย `BACKUP_OFFSITE_PATH`
+  - เพิ่มตัวอย่าง `BACKUP_OFFSITE_PATH=D:/DB_Backup_Offsite`
+  - เพิ่มคำสั่ง `php artisan backup:copy-offsite --dry-run`
+- เพิ่ม test ใหม่ `tests/Feature/BackupOffsiteCopyTest.php`
+  - copy ไฟล์ไป offsite path สำเร็จ
+  - skip เมื่อไม่ได้ตั้ง `BACKUP_OFFSITE_PATH`
+  - ตรวจคำสั่ง `backup:copy-offsite --dry-run`
+- รัน migration เฉพาะไฟล์ใหม่ในฐานข้อมูลจริงสำเร็จแล้ว
+
+```bash
+php artisan migrate --path=database/migrations/2026_04_24_000005_add_offsite_copy_to_backup_jobs_table.php --force
+```
+
+### ตรวจสอบแล้ว
+
+- `php artisan test` ผ่าน 15 tests
+- `vendor\bin\pint.bat --dirty` ผ่าน
+- `npm.cmd run build` ผ่าน
+- `php artisan backup:copy-offsite --dry-run` ผ่าน และพบ backup ที่ verify ผ่านแล้ว 1 รายการที่ยังไม่ได้ copy
+- `php -l app\Services\BackupOffsiteCopyService.php` ผ่าน
+- `php -l routes\console.php` ผ่าน
+- `php -l tests\Feature\BackupOffsiteCopyTest.php` ผ่าน
+- `php -l app\Http\Controllers\AutomationGuideController.php` ผ่าน
+
+### วิธีเปิดใช้งาน Offsite Copy
+
+ตั้งค่าใน `.env` เป็น path ปลายทางที่ต้องการ เช่น:
+
+```env
+BACKUP_OFFSITE_PATH=D:/DB_Backup_Offsite
+```
+
+หลังจากตั้งค่าแล้ว backup ใหม่ที่ verify ผ่านจะถูก copy ไปปลายทางนี้อัตโนมัติ ถ้าต้องการ copy backup เก่าที่ยังไม่ได้ copy ให้รัน:
+
+```bash
+php artisan backup:copy-offsite
+```
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- เพิ่ม Restore Drill / Restore Report รายเดือน เพื่อสุ่ม restore backup ไปฐานทดสอบและยืนยันว่าใช้งานได้จริง
+- เพิ่ม notification เฉพาะเมื่อ offsite copy failed หรือ verification failed
+- เพิ่ม retention cleanup ฝั่ง offsite path ถ้าต้องการลบไฟล์สำรองปลายทางตามอายุ
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+- ค่อย ๆ แก้ encoding ภาษาไทยในไฟล์เก่าที่แสดงเป็น mojibake ในบางจุด
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Restore Drill Report)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่มระบบ Restore Drill / Restore Report สำหรับซ้อมตรวจความพร้อมของ backup โดยยังไม่ restore ทับฐานข้อมูลจริง
+- เพิ่ม migration `2026_04_24_000006_create_restore_drills_table.php`
+- เพิ่มตาราง `restore_drills`
+  - `backup_target_id`
+  - `backup_job_id`
+  - `status`
+  - `started_at`
+  - `finished_at`
+  - `duration_seconds`
+  - `source_name`
+  - `source_path`
+  - `checks`
+  - `error_message`
+  - `created_by`
+- เพิ่ม model `RestoreDrill`
+- เพิ่ม relation
+  - `BackupTarget::restoreDrills()`
+  - `BackupJob::restoreDrills()`
+- เพิ่ม `RestoreDrillService`
+  - เลือก backup ล่าสุดที่ `success` ของ target
+  - ตรวจว่า backup job สำเร็จ
+  - ตรวจว่า backup เป็นของ target นั้นจริง
+  - ตรวจว่า `verification_status = passed`
+  - ตรวจว่าไฟล์มี path, มีอยู่จริง, อ่านได้ และไม่ว่าง
+  - ถ้าเป็น `.gz` จะลองเปิดอ่านด้วย `gzopen/gzread`
+  - บันทึกผลตรวจเป็น JSON ใน `checks`
+- เพิ่มคำสั่ง Artisan
+
+```bash
+php artisan backup:restore-drill --dry-run
+php artisan backup:restore-drill
+php artisan backup:restore-drill --target=1
+php artisan backup:restore-drill --job=1
+```
+
+- เพิ่ม scheduler ให้รัน restore drill รายเดือนทุกวันที่ 1 เวลา 08:00
+- เพิ่มหน้า `Restore Drills` ที่ `/restore-drills`
+  - ดู summary ทั้งหมด/ผ่าน/ไม่ผ่าน/กำลังตรวจ
+  - filter ตาม target, status, วันที่
+  - ดู checks รายข้อของแต่ละ drill
+- เพิ่มเมนู `Restore Drills` ใน sidebar พร้อม icon ใหม่
+- เพิ่มคำสั่ง restore drill ในหน้า `Automation Guide`
+- เพิ่ม test ใหม่ `tests/Feature/RestoreDrillTest.php`
+  - drill ผ่านเมื่อ backup ล่าสุด verify ผ่านและไฟล์อ่านได้
+  - drill ไม่ผ่านเมื่อ backup verification ไม่ผ่าน
+  - command `backup:restore-drill --dry-run`
+  - หน้า `/restore-drills` แสดงรายการได้
+- รัน migration เฉพาะไฟล์ใหม่ในฐานข้อมูลจริงสำเร็จแล้ว
+
+```bash
+php artisan migrate --path=database/migrations/2026_04_24_000006_create_restore_drills_table.php --force
+```
+
+### ตรวจสอบแล้ว
+
+- `php artisan test --filter=RestoreDrillTest` ผ่าน 4 tests
+- `php -l app\Services\RestoreDrillService.php` ผ่าน
+- `php -l app\Http\Controllers\RestoreDrillController.php` ผ่าน
+- `php -l tests\Feature\RestoreDrillTest.php` ผ่าน
+- `php -l routes\console.php` ผ่าน
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- เพิ่ม drill แบบ restore เข้า test database จริง โดยใช้ target ทดสอบแยกจาก production
+- เพิ่ม notification เมื่อ restore drill failed
+- เพิ่ม export restore drill report เป็น CSV/Excel/PDF
+- เพิ่ม retention cleanup ฝั่ง offsite path ถ้าต้องการลบไฟล์สำรองปลายทางตามอายุ
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+- ค่อย ๆ แก้ encoding ภาษาไทยในไฟล์เก่าที่แสดงเป็น mojibake ในบางจุด
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Health Check Notifications)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่ม email notification สำหรับ health check ที่ล้มเหลว
+- เพิ่ม `BackupHealthCheckFailedMail`
+- เพิ่ม view email `resources/views/emails/backup-health-check-failed.blade.php`
+- เพิ่ม `BackupHealthAlertService`
+  - ใช้อีเมลจาก `notification_emails` ของ target ก่อน
+  - ถ้า target ไม่ได้ตั้งอีเมล จะ fallback ไปที่ `BACKUP_ALERT_EMAILS`
+  - บันทึก audit log เมื่อส่งสำเร็จหรือส่งไม่สำเร็จ
+- ผูก notification กับ failure สำคัญ 3 จุด
+  - Backup verification failed
+  - Offsite copy failed
+  - Restore drill failed
+- เพิ่ม audit log
+  - `backup.health_notification_sent`
+  - `backup.health_notification_failed`
+- ปรับ `BackupOffsiteCopyService` ให้จัดการกรณี offsite path เป็นไฟล์แทนโฟลเดอร์ได้เรียบร้อยขึ้น โดยโยน error ที่อ่านเข้าใจได้
+- เพิ่ม test
+  - verification fail แล้วส่ง `BackupHealthCheckFailedMail`
+  - offsite copy fail แล้วส่ง `BackupHealthCheckFailedMail`
+  - restore drill fail แล้วส่ง `BackupHealthCheckFailedMail`
+
+### ตรวจสอบแล้ว
+
+- `php artisan test --filter=BackupVerificationTest` ผ่าน 4 tests
+- `php artisan test --filter=BackupOffsiteCopyTest` ผ่าน 4 tests
+- `php artisan test --filter=RestoreDrillTest` ผ่าน 5 tests
+- `php -l app\Mail\BackupHealthCheckFailedMail.php` ผ่าน
+- `php -l app\Services\BackupHealthAlertService.php` ผ่าน
+- `php -l app\Services\BackupVerificationService.php` ผ่าน
+- `php -l app\Services\BackupOffsiteCopyService.php` ผ่าน
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- เพิ่ม drill แบบ restore เข้า test database จริง โดยใช้ target ทดสอบแยกจาก production
+- เพิ่ม export restore drill report เป็น CSV/Excel/PDF
+- เพิ่ม retention cleanup ฝั่ง offsite path ถ้าต้องการลบไฟล์สำรองปลายทางตามอายุ
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+- ค่อย ๆ แก้ encoding ภาษาไทยในไฟล์เก่าที่แสดงเป็น mojibake ในบางจุด

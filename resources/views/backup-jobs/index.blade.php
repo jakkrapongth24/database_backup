@@ -27,6 +27,10 @@
                 ['label' => 'สำเร็จ', 'value' => $summary['success'], 'class' => 'bg-emerald-100 text-emerald-700'],
                 ['label' => 'ล้มเหลว', 'value' => $summary['failed'], 'class' => 'bg-rose-100 text-rose-700'],
                 ['label' => 'กำลังทำงาน', 'value' => $summary['running'], 'class' => 'bg-orange-100 text-orange-700'],
+                ['label' => 'Verified', 'value' => $summary['verified'], 'class' => 'bg-cyan-100 text-cyan-700'],
+                ['label' => 'Verify Failed', 'value' => $summary['verification_failed'], 'class' => 'bg-red-100 text-red-700'],
+                ['label' => 'Offsite Copied', 'value' => $summary['offsite_copied'], 'class' => 'bg-indigo-100 text-indigo-700'],
+                ['label' => 'Offsite Failed', 'value' => $summary['offsite_failed'], 'class' => 'bg-pink-100 text-pink-700'],
             ] as $item)
                 <article class="rounded-[1.75rem] border border-white bg-white p-5 shadow-sm shadow-slate-200/80">
                     <p class="text-sm font-medium text-slate-500">{{ $item['label'] }}</p>
@@ -110,6 +114,16 @@
                                         <div class="mt-1 max-w-md break-all text-xs text-slate-500">{{ $job->file_path }}</div>
                                         <div class="mt-2 flex flex-wrap items-center gap-2">
                                             <div class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ $job->human_file_size }}</div>
+                                            @if ($job->verification_status)
+                                                <div class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $job->verification_status === 'passed' ? 'bg-cyan-100 text-cyan-700' : 'bg-red-100 text-red-700' }}">
+                                                    VERIFY {{ strtoupper($job->verification_status) }}
+                                                </div>
+                                            @endif
+                                            @if ($job->offsite_status)
+                                                <div class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $job->offsite_status === 'copied' ? 'bg-indigo-100 text-indigo-700' : ($job->offsite_status === 'failed' ? 'bg-pink-100 text-pink-700' : 'bg-slate-100 text-slate-600') }}">
+                                                    OFFSITE {{ strtoupper($job->offsite_status) }}
+                                                </div>
+                                            @endif
                                             @if ($job->status === 'success')
                                                 <a href="{{ route('backup-jobs.download', $job) }}" class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-200">
                                                     Download
@@ -121,6 +135,16 @@
                                                 @endif
                                             @endif
                                         </div>
+                                        @if ($job->verification_message)
+                                            <div class="mt-2 max-w-md break-words text-xs text-slate-500">
+                                                {{ $job->verification_message }}
+                                            </div>
+                                        @endif
+                                        @if ($job->offsite_path || $job->offsite_message)
+                                            <div class="mt-2 max-w-md break-words text-xs text-slate-500">
+                                                {{ $job->offsite_path ?: $job->offsite_message }}
+                                            </div>
+                                        @endif
                                     @else
                                         <span class="text-sm text-slate-400">{{ $job->status === 'queued' ? 'Waiting for queue worker' : '-' }}</span>
                                     @endif

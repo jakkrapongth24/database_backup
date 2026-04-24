@@ -153,6 +153,15 @@
                     </p>
                     <div class="mt-4 break-all rounded-2xl bg-white p-4 font-mono text-sm text-slate-900">{{ $restoreBinaryPath }}</div>
                 </div>
+
+                <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                    <p class="text-lg font-semibold text-slate-950">BACKUP_OFFSITE_PATH</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-500">
+                        ใช้กำหนดโฟลเดอร์สำรองอีกชุด หลัง backup ผ่าน verification ระบบจะ copy ไฟล์ไปที่ path นี้ ถ้าไม่ตั้งค่าจะข้ามขั้นตอน offsite copy
+                    </p>
+                    <div class="mt-4 break-all rounded-2xl bg-white p-4 font-mono text-sm text-slate-900">{{ $offsitePath }}</div>
+                    <div class="mt-3 break-all rounded-2xl bg-white p-4 font-mono text-sm text-slate-900">{{ $offsiteCopyCommand }}</div>
+                </div>
             </div>
 
             <div class="mt-6 grid gap-4 lg:grid-cols-3">
@@ -173,6 +182,7 @@
             <div class="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p class="text-lg font-semibold text-slate-950">ตัวอย่างค่าใน .env</p>
                 <pre class="mt-4 overflow-x-auto rounded-2xl bg-white p-4 text-sm leading-6 text-slate-900">BACKUP_RESTORE_BINARY_PATH=C:/wamp64/bin/mariadb/mariadb11.4.9/bin/mariadb.exe
+BACKUP_OFFSITE_PATH=D:/DB_Backup_Offsite
 QUEUE_CONNECTION=database</pre>
             </div>
         </section>
@@ -221,6 +231,7 @@ QUEUE_CONNECTION=database</pre>
                     <div class="rounded-2xl bg-slate-50 p-4 font-mono text-sm text-slate-900">{{ $scheduledBackupCommand }}</div>
                     <div class="rounded-2xl bg-slate-50 p-4 font-mono text-sm text-slate-900">{{ $cleanupCommand }}</div>
                     <div class="rounded-2xl bg-slate-50 p-4 font-mono text-sm text-slate-900">{{ $dailySummaryCommand }}</div>
+                    <div class="rounded-2xl bg-slate-50 p-4 font-mono text-sm text-slate-900">{{ $restoreDrillCommand }}</div>
                 </div>
             </article>
 

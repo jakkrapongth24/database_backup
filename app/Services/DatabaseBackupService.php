@@ -110,11 +110,16 @@ class DatabaseBackupService
                 'error_message' => null,
             ]);
 
+            $job = app(BackupVerificationService::class)->verify($job->refresh()->load('target'));
+            $job = app(BackupOffsiteCopyService::class)->copy($job->refresh()->load('target'));
+
             app(AuditLogger::class)->log('backup.completed', "Backup completed for {$target->name}.", $job, [
                 'target' => $target->name,
                 'file_name' => $job->file_name,
                 'file_size' => $job->file_size,
                 'duration_seconds' => $job->duration_seconds,
+                'verification_status' => $job->verification_status,
+                'offsite_status' => $job->offsite_status,
                 'triggered_by_user_id' => $userId,
             ], $userId);
 
@@ -372,7 +377,7 @@ class DatabaseBackupService
             throw new RuntimeException("Cannot create backup directory: {$directory}");
         }
 
-        return rtrim($directory, "\\/");
+        return rtrim($directory, '\\/');
     }
 
     private function buildFileName(BackupTarget $target): string
@@ -427,7 +432,7 @@ class DatabaseBackupService
         try {
             $this->gzwrite($gzip, "-- PHP PDO dump\n");
             $this->gzwrite($gzip, "-- Database: {$target->database_name}\n");
-            $this->gzwrite($gzip, "-- Created at: ".now()->format('Y-m-d H:i:s')."\n\n");
+            $this->gzwrite($gzip, '-- Created at: '.now()->format('Y-m-d H:i:s')."\n\n");
             $this->gzwrite($gzip, "SET FOREIGN_KEY_CHECKS=0;\n\n");
 
             $tables = $pdo->query("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'")->fetchAll(\PDO::FETCH_NUM);

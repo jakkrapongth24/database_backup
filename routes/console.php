@@ -1,17 +1,22 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
+use App\Mail\DailyBackupSummaryMail;
+use App\Models\BackupJob;
 use App\Models\BackupTarget;
-use App\Services\DatabaseBackupService;
+use App\Services\AuditLogger;
+use App\Services\BackupOffsiteCopyService;
 use App\Services\BackupRetentionService;
 use App\Services\BackupScheduleService;
+use App\Services\BackupSummaryService;
+use App\Services\BackupVerificationService;
+use App\Services\DatabaseBackupService;
+use App\Services\RestoreDrillService;
+use Carbon\Carbon;
+use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
-use App\Mail\DailyBackupSummaryMail;
-use App\Services\AuditLogger;
-use App\Services\BackupSummaryService;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -226,12 +231,199 @@ Artisan::command('backup:cleanup {--target= : Cleanup only one backup target id}
     return 0;
 })->purpose('Remove expired successful backup files by each target retention_days');
 
+Artisan::command('backup:verify {--target= : Verify successful backups for one target id} {--job= : Verify one backup job id} {--dry-run : Show backups that would be verified}', function (
+    BackupVerificationService $verificationService,
+): int {
+    $query = BackupJob::query()
+        ->with('target')
+        ->where('status', 'success');
+
+    if ($this->option('job')) {
+        $query->whereKey((int) $this->option('job'));
+    }
+
+    if ($this->option('target')) {
+        $query->where('backup_target_id', (int) $this->option('target'));
+    }
+
+    $jobs = $query->latest('finished_at')->get();
+
+    if ($jobs->isEmpty()) {
+        $this->info('No successful backup jobs found to verify.');
+
+        return 0;
+    }
+
+    $this->table(
+        ['Job ID', 'Target', 'File', 'Current Verification'],
+        $jobs->map(fn (BackupJob $job): array => [
+            $job->id,
+            $job->target?->name ?? 'Deleted target',
+            $job->file_name ?? basename((string) $job->file_path),
+            $job->verification_status ?? 'not checked',
+        ])->all(),
+    );
+
+    if ($this->option('dry-run')) {
+        $this->info('Dry run only. No backup file was verified.');
+
+        return 0;
+    }
+
+    $failed = 0;
+
+    foreach ($jobs as $job) {
+        try {
+            $verificationService->verify($job);
+            $this->info("Verified backup job #{$job->id}");
+        } catch (Throwable $exception) {
+            $failed++;
+            $this->error("Backup job #{$job->id} verification failed: {$exception->getMessage()}");
+        }
+    }
+
+    return $failed > 0 ? 1 : 0;
+})->purpose('Verify successful backup files can be read and opened');
+
+Artisan::command('backup:copy-offsite {--target= : Copy verified backups for one target id} {--job= : Copy one backup job id} {--dry-run : Show backups that would be copied}', function (
+    BackupOffsiteCopyService $offsiteCopyService,
+): int {
+    $query = BackupJob::query()
+        ->with('target')
+        ->where('status', 'success')
+        ->where('verification_status', 'passed');
+
+    if ($this->option('job')) {
+        $query->whereKey((int) $this->option('job'));
+    }
+
+    if ($this->option('target')) {
+        $query->where('backup_target_id', (int) $this->option('target'));
+    }
+
+    $jobs = $query->latest('finished_at')->get();
+
+    if ($jobs->isEmpty()) {
+        $this->info('No verified backup jobs found to copy offsite.');
+
+        return 0;
+    }
+
+    $this->table(
+        ['Job ID', 'Target', 'File', 'Current Offsite'],
+        $jobs->map(fn (BackupJob $job): array => [
+            $job->id,
+            $job->target?->name ?? 'Deleted target',
+            $job->file_name ?? basename((string) $job->file_path),
+            $job->offsite_status ?? 'not copied',
+        ])->all(),
+    );
+
+    if ($this->option('dry-run')) {
+        $this->info('Dry run only. No backup file was copied offsite.');
+
+        return 0;
+    }
+
+    $failed = 0;
+
+    foreach ($jobs as $job) {
+        try {
+            $offsiteCopyService->copy($job);
+            $this->info("Copied backup job #{$job->id} offsite");
+        } catch (Throwable $exception) {
+            $failed++;
+            $this->error("Backup job #{$job->id} offsite copy failed: {$exception->getMessage()}");
+        }
+    }
+
+    return $failed > 0 ? 1 : 0;
+})->purpose('Copy verified backup files to configured offsite storage');
+
+Artisan::command('backup:restore-drill {--target= : Run drill for one target id} {--job= : Run drill for one backup job id} {--dry-run : Show selected targets without creating drill records}', function (
+    RestoreDrillService $restoreDrillService,
+): int {
+    $target = null;
+    $job = null;
+
+    if ($this->option('job')) {
+        $job = BackupJob::query()->with('target')->find((int) $this->option('job'));
+
+        if (! $job || ! $job->target) {
+            $this->error('Backup job not found.');
+
+            return 1;
+        }
+
+        $target = $job->target;
+    }
+
+    if ($this->option('target')) {
+        $target = BackupTarget::find((int) $this->option('target'));
+
+        if (! $target) {
+            $this->error('Backup target not found.');
+
+            return 1;
+        }
+    }
+
+    $targets = $target
+        ? collect([$target])
+        : BackupTarget::query()->where('is_active', true)->orderBy('name')->get();
+
+    if ($targets->isEmpty()) {
+        $this->info('No active backup targets found.');
+
+        return 0;
+    }
+
+    $this->table(
+        ['Target ID', 'Target', 'Selected Backup'],
+        $targets->map(function (BackupTarget $backupTarget) use ($restoreDrillService, $job): array {
+            $selectedJob = $job && $job->backup_target_id === $backupTarget->id
+                ? $job
+                : $restoreDrillService->latestRestorableBackup($backupTarget);
+
+            return [
+                $backupTarget->id,
+                $backupTarget->name,
+                $selectedJob ? "#{$selectedJob->id} {$selectedJob->file_name}" : 'No successful backup',
+            ];
+        })->all(),
+    );
+
+    if ($this->option('dry-run')) {
+        $this->info('Dry run only. No restore drill record was created.');
+
+        return 0;
+    }
+
+    $failed = 0;
+
+    foreach ($targets as $backupTarget) {
+        $selectedJob = $job && $job->backup_target_id === $backupTarget->id
+            ? $job
+            : null;
+        $drill = $restoreDrillService->runForTarget($backupTarget, $selectedJob);
+
+        if ($drill->status === 'success') {
+            $this->info("Restore drill #{$drill->id} passed for {$backupTarget->name}");
+        } else {
+            $failed++;
+            $this->error("Restore drill #{$drill->id} failed for {$backupTarget->name}: {$drill->error_message}");
+        }
+    }
+
+    return $failed > 0 ? 1 : 0;
+})->purpose('Run restore drill readiness checks against latest successful backups');
+
 Artisan::command('backup:send-daily-summary {--date= : Summary date in YYYY-MM-DD format} {--dry-run : Build summary without sending email}', function (
     BackupSummaryService $summaryService,
     AuditLogger $audit,
 ): int {
     $summaryDate = $this->option('date')
-        ? \Carbon\Carbon::parse((string) $this->option('date'))
+        ? Carbon::parse((string) $this->option('date'))
         : now()->subDay();
 
     $periodStart = $summaryDate->copy()->startOfDay();
