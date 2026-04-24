@@ -114,6 +114,11 @@
                                                 <a href="{{ route('backup-jobs.download', $job) }}" class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-200">
                                                     Download
                                                 </a>
+                                                @if ($job->target)
+                                                    <a href="{{ route('restore.index', ['target_id' => $job->target->id]) }}" class="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-200">
+                                                        Restore
+                                                    </a>
+                                                @endif
                                             @endif
                                         </div>
                                     @else

@@ -13,6 +13,7 @@
             ['label' => 'Dashboard', 'route' => 'dashboard', 'href' => route('dashboard'), 'icon' => 'grid'],
             ['label' => 'Backup Targets', 'route' => 'backup-targets.*', 'href' => route('backup-targets.index'), 'icon' => 'database'],
             ['label' => 'Backup History', 'route' => 'backup-jobs.*', 'href' => route('backup-jobs.index'), 'icon' => 'history'],
+            ['label' => 'Restore', 'route' => 'restore.*', 'href' => route('restore.index'), 'icon' => 'restore'],
             ['label' => 'Queue Monitor', 'route' => 'queue-monitor.*', 'href' => route('queue-monitor.index'), 'icon' => 'history'],
             ['label' => 'Reports', 'route' => 'reports.*', 'href' => route('reports.index'), 'icon' => 'report'],
             ['label' => 'Audit Logs', 'route' => 'audit-logs.*', 'href' => route('audit-logs.index'), 'icon' => 'audit'],

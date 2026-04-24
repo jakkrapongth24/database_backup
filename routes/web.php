@@ -1,13 +1,14 @@
 <?php
 
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AutomationGuideController;
 use App\Http\Controllers\BackupJobController;
 use App\Http\Controllers\BackupTargetController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\QueueMonitorController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RestoreController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -29,6 +30,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/queue-monitor', QueueMonitorController::class)->name('queue-monitor.index');
     Route::post('/queue-monitor/failed-jobs/{failedJobId}/retry', [QueueMonitorController::class, 'retryFailedJob'])
         ->name('queue-monitor.retry');
+    Route::get('/restore', [RestoreController::class, 'index'])->name('restore.index');
+    Route::post('/restore', [RestoreController::class, 'store'])->name('restore.store');
     Route::get('/reports', ReportController::class)->name('reports.index');
     Route::get('/reports/export/csv', [ReportController::class, 'exportCsv'])->name('reports.export.csv');
     Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');

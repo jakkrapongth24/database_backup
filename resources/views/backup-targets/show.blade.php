@@ -26,6 +26,9 @@
                 <a href="{{ route('backup-targets.edit', $target) }}" class="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-center text-sm font-semibold text-sky-700 transition hover:bg-sky-100">
                     Edit
                 </a>
+                <a href="{{ route('restore.index', ['target_id' => $target->id]) }}" class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-center text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
+                    Restore
+                </a>
                 <form method="POST" action="{{ route('backup-targets.backup-now', $target) }}" class="js-confirm" data-confirm-title="Start backup?" data-confirm-text="Queue backup job for {{ $target->name }} now?">
                     @csrf
                     <button class="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">
