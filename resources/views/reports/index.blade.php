@@ -8,11 +8,22 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-600">Reports</p>
                 <h1 class="mt-3 text-3xl font-semibold tracking-tight text-slate-950">รายงานภาพรวม Backup</h1>
-                <p class="mt-2 text-sm leading-6 text-slate-500">สรุปอัตราสำเร็จ ขนาดไฟล์รวม รายวัน และระบบที่ควรตรวจสอบ</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">สรุปอัตราสำเร็จ ขนาดไฟล์รวม รายวัน และระบบที่ควรตรวจสอบ พร้อม export เป็น CSV ได้ทันที</p>
             </div>
-            <a href="{{ route('backup-jobs.index') }}" class="rounded-2xl bg-emerald-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">
-                ดูประวัติ Backup
-            </a>
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <a href="{{ route('reports.export.csv', ['date_from' => $dateFrom, 'date_to' => $dateTo]) }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
+                    Export CSV
+                </a>
+                <a href="{{ route('reports.export.excel', ['date_from' => $dateFrom, 'date_to' => $dateTo]) }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
+                    Export Excel
+                </a>
+                <a href="{{ route('reports.export.pdf', ['date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" rel="noopener" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
+                    Export PDF
+                </a>
+                <a href="{{ route('backup-jobs.index') }}" class="rounded-2xl bg-emerald-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">
+                    ดูประวัติ Backup
+                </a>
+            </div>
         </header>
 
         <section class="mt-6 rounded-[2rem] border border-white bg-white p-5 shadow-sm shadow-slate-200/80">
@@ -34,7 +45,7 @@
 
         <section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             @foreach ([
-                ['label' => 'งานทั้งหมด', 'value' => number_format($stats['total']), 'desc' => 'ในช่วงวันที่เลือก', 'class' => 'bg-slate-100 text-slate-700'],
+                ['label' => 'งานทั้งหมด', 'value' => number_format($stats['total']), 'desc' => 'ในช่วงวันที่ที่เลือก', 'class' => 'bg-slate-100 text-slate-700'],
                 ['label' => 'Success Rate', 'value' => $stats['success_rate'].'%', 'desc' => number_format($stats['success']).' สำเร็จ', 'class' => 'bg-emerald-100 text-emerald-700'],
                 ['label' => 'Failed', 'value' => number_format($stats['failed']), 'desc' => 'งานที่ควรตรวจสอบ', 'class' => 'bg-rose-100 text-rose-700'],
                 ['label' => 'ขนาดไฟล์รวม', 'value' => $stats['total_size'], 'desc' => 'เฉพาะ backup สำเร็จ', 'class' => 'bg-sky-100 text-sky-700'],
@@ -75,7 +86,7 @@
                             </div>
                         </div>
                     @empty
-                        <p class="rounded-3xl bg-slate-50 p-6 text-center text-sm text-slate-500">ยังไม่มีข้อมูลในช่วงวันที่เลือก</p>
+                        <p class="rounded-3xl bg-slate-50 p-6 text-center text-sm text-slate-500">ยังไม่มีข้อมูลในช่วงวันที่ที่เลือก</p>
                     @endforelse
                 </div>
             </article>

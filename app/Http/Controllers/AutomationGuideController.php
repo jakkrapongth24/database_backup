@@ -16,6 +16,7 @@ class AutomationGuideController extends Controller
             'scheduleWorkCommand' => 'php artisan schedule:work',
             'scheduledBackupCommand' => 'php artisan backup:run-scheduled --dry-run',
             'cleanupCommand' => 'php artisan backup:cleanup --dry-run',
+            'dailySummaryCommand' => 'php artisan backup:send-daily-summary --dry-run',
             'workerBatPath' => base_path('scripts/windows/start-worker.bat'),
             'schedulerBatPath' => base_path('scripts/windows/start-scheduler.bat'),
             'devBatPath' => base_path('scripts/windows/start-dev.bat'),

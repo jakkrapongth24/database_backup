@@ -56,6 +56,7 @@ If a backup stays at `QUEUED`, the usual cause is that no queue worker is runnin
 ```bash
 php artisan backup:run-scheduled --dry-run
 php artisan backup:cleanup --dry-run
+php artisan backup:send-daily-summary --dry-run
 php artisan schedule:list
 php artisan queue:work --tries=1
 php artisan schedule:work
@@ -71,4 +72,5 @@ Login users are read from `bp_webapp.personel`.
 BACKUP_DEFAULT_PATH=storage/app/backups
 BACKUP_MARIADB_DUMP_BINARY_PATH=C:/wamp64/bin/mariadb/mariadb11.4.9/bin/mariadb-dump.exe
 BACKUP_MYSQL_DUMP_BINARY_PATH=C:/wamp64/bin/mysql/mysql8.4.7/bin/mysqldump.exe
+BACKUP_DAILY_SUMMARY_EMAILS=
 ```

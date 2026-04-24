@@ -19,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('backup:cleanup')
             ->hourly()
             ->withoutOverlapping();
+
+        $schedule->command('backup:send-daily-summary')
+            ->dailyAt('07:00')
+            ->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         //

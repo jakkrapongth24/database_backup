@@ -7,7 +7,11 @@ use App\Services\BackupRetentionService;
 use App\Services\BackupScheduleService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use App\Mail\DailyBackupSummaryMail;
+use App\Services\AuditLogger;
+use App\Services\BackupSummaryService;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -221,3 +225,72 @@ Artisan::command('backup:cleanup {--target= : Cleanup only one backup target id}
 
     return 0;
 })->purpose('Remove expired successful backup files by each target retention_days');
+
+Artisan::command('backup:send-daily-summary {--date= : Summary date in YYYY-MM-DD format} {--dry-run : Build summary without sending email}', function (
+    BackupSummaryService $summaryService,
+    AuditLogger $audit,
+): int {
+    $summaryDate = $this->option('date')
+        ? \Carbon\Carbon::parse((string) $this->option('date'))
+        : now()->subDay();
+
+    $periodStart = $summaryDate->copy()->startOfDay();
+    $periodEnd = $summaryDate->copy()->endOfDay();
+    $summary = $summaryService->build($periodStart, $periodEnd);
+
+    $recipients = collect(preg_split('/[\r\n,;]+/', (string) (env('BACKUP_DAILY_SUMMARY_EMAILS') ?: env('BACKUP_ALERT_EMAILS'))) ?: [])
+        ->map(fn (string $email): string => trim($email))
+        ->filter()
+        ->unique()
+        ->values()
+        ->all();
+
+    $this->table('Summary', [
+        ['Date', $periodStart->toDateString()],
+        ['Total Jobs', (string) $summary['stats']['total']],
+        ['Success', (string) $summary['stats']['success']],
+        ['Failed', (string) $summary['stats']['failed']],
+        ['Queued', (string) $summary['stats']['queued']],
+        ['Running', (string) $summary['stats']['running']],
+        ['Missing Scheduled Targets', (string) $summary['missing_targets']->count()],
+        ['Failed Targets', (string) $summary['failed_targets']->count()],
+        ['Recipients', $recipients === [] ? '-' : implode(', ', $recipients)],
+    ]);
+
+    if ($this->option('dry-run')) {
+        $this->info('Dry run only. No email was sent.');
+
+        return 0;
+    }
+
+    if ($recipients === []) {
+        $this->warn('No recipients configured. Set BACKUP_DAILY_SUMMARY_EMAILS or BACKUP_ALERT_EMAILS.');
+
+        return 0;
+    }
+
+    try {
+        Mail::to($recipients)->send(new DailyBackupSummaryMail($summary));
+        $audit->log('backup.daily_summary_sent', "Daily backup summary sent for {$periodStart->toDateString()}.", metadata: [
+            'date' => $periodStart->toDateString(),
+            'recipients' => $recipients,
+            'failed_targets' => $summary['failed_targets']->count(),
+            'missing_targets' => $summary['missing_targets']->count(),
+            'stats' => $summary['stats'],
+        ]);
+
+        $this->info('Daily backup summary email sent.');
+
+        return 0;
+    } catch (Throwable $exception) {
+        $audit->log('backup.daily_summary_failed', "Daily backup summary could not be sent for {$periodStart->toDateString()}.", metadata: [
+            'date' => $periodStart->toDateString(),
+            'recipients' => $recipients,
+            'error' => $exception->getMessage(),
+        ]);
+
+        $this->error('Cannot send daily backup summary: '.$exception->getMessage());
+
+        return 1;
+    }
+})->purpose('Send daily backup summary email to administrators');

@@ -41,7 +41,7 @@
                                             DB
                                         </div>
                                         <div>
-                                            <div class="font-black text-slate-950">{{ $target->name }}</div>
+                                            <a href="{{ route('backup-targets.show', $target) }}" class="font-black text-slate-950 transition hover:text-emerald-600">{{ $target->name }}</a>
                                             <div class="mt-1 text-sm text-slate-500">{{ strtoupper($target->db_type) }} · {{ $target->username }}</div>
                                         </div>
                                     </div>
@@ -91,6 +91,9 @@
                                         </form>
                                         <a href="{{ route('backup-targets.edit', $target) }}" class="rounded-xl border border-slate-200 px-4 py-2 text-center text-sm font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50">
                                             Edit
+                                        </a>
+                                        <a href="{{ route('backup-targets.show', $target) }}" class="rounded-xl border border-slate-200 px-4 py-2 text-center text-sm font-black text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
+                                            Detail
                                         </a>
                                         <form method="POST" action="{{ route('backup-targets.destroy', $target) }}" class="js-confirm" data-confirm-title="ลบระบบนี้?" data-confirm-text="การลบ {{ $target->name }} จะลบประวัติ backup ของ target นี้ด้วย">
                                             @csrf

@@ -71,8 +71,7 @@ class BackupJobController extends Controller
 
         $job = $backupService->queue($backupTarget, Auth::id());
 
-        return redirect()
-            ->route('backup-jobs.index')
+        return back()
             ->with('status', "Backup {$backupTarget->name} queued successfully. Job #{$job->id} is waiting for queue worker.");
     }
 

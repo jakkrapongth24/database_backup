@@ -46,6 +46,8 @@
 - ถ้ามีงาน `queued` หรือ `running` อยู่แล้ว ระบบจะไม่คิวซ้ำ target เดิม
 - หน้า `Backup History` และ `Dashboard` แสดงสถานะ `queued`
 - มีคำสั่ง/สคริปต์สำหรับเปิด `queue worker`
+- มีหน้า `Queue Monitor` สำหรับดู `jobs` และ `failed_jobs`
+- retry failed job จากหน้าเว็บได้
 
 #### 5. Notification เมื่อ Backup Fail
 
@@ -53,6 +55,9 @@
 - ใช้อีเมลจาก `notification_emails` ของ target ก่อน
 - ถ้า target ไม่ได้ตั้งไว้ จะ fallback ไปที่ `BACKUP_ALERT_EMAILS` ใน `.env`
 - มี mail view สำหรับข้อความแจ้งเตือนแล้ว
+- มีคำสั่ง `backup:send-daily-summary`
+- ส่ง daily summary email ให้ admin ได้
+- scheduler เรียก daily summary อัตโนมัติได้
 
 #### 6. Dashboard และ UI
 
@@ -83,6 +88,9 @@
 - แสดงสรุปรายวัน
 - แสดงสรุปตาม target
 - แสดง target ที่ควรตรวจสอบ
+- export รายงานเป็น CSV ได้
+- export รายงานเป็น Excel ได้
+- export รายงานเป็น PDF ได้
 
 #### 9. Download Backup
 
@@ -138,6 +146,9 @@
 
 - หลังแก้ไข `Backup Target` แล้วจะ redirect กลับมาหน้า edit เดิม
 - หน้า edit แสดง `Last saved` เพื่อให้เห็นว่าบันทึกแล้วจริง
+- มีหน้า detail ของแต่ละ target
+- ดู summary และประวัติ backup ล่าสุดของ target เดียวได้
+- กด `Backup Now` จากหน้า detail ได้
 
 ---
 
@@ -151,6 +162,11 @@
 - เพิ่ม `RunBackupJob`
 - เพิ่ม `BackupFailedMail`
 - เพิ่มหน้า/คู่มือ Automation Guide ใหม่
+- เพิ่ม export CSV จากหน้า Reports
+- เพิ่มหน้า Target Detail
+- เพิ่มหน้า Queue Monitor และปุ่ม retry failed job
+- เพิ่ม daily backup summary email
+- เพิ่ม export Reports เป็น Excel และ PDF
 - เพิ่มไฟล์:
   - `scripts/windows/start-dev.bat`
   - `scripts/windows/start-worker.bat`
@@ -177,6 +193,7 @@ php artisan backup:run-scheduled --dry-run
 php artisan backup:run-scheduled --target=1
 php artisan backup:cleanup --dry-run
 php artisan backup:cleanup --target=1
+php artisan backup:send-daily-summary --dry-run
 ```
 
 คำสั่งผ่าน Composer:
@@ -232,6 +249,7 @@ BACKUP_DUMP_BINARY_PATH=C:/wamp64/bin/mariadb/mariadb11.4.9/bin/mariadb-dump.exe
 BACKUP_MARIADB_DUMP_BINARY_PATH=C:/wamp64/bin/mariadb/mariadb11.4.9/bin/mariadb-dump.exe
 BACKUP_MYSQL_DUMP_BINARY_PATH=C:/wamp64/bin/mysql/mysql8.4.7/bin/mysqldump.exe
 BACKUP_ALERT_EMAILS=
+BACKUP_DAILY_SUMMARY_EMAILS=
 
 QUEUE_CONNECTION=database
 MAIL_MAILER=log
@@ -267,44 +285,20 @@ MAIL_MAILER=log
 
 ## งานที่ยังเหลือ / ควรทำต่อ
 
-### 1. Export Reports
-
-- export รายงานเป็น Excel / CSV / PDF
-- export สรุปรายวัน / รายเดือน
-
-### 2. Restore แบบปลอดภัย
+### 1. Restore แบบปลอดภัย
 
 - upload หรือเลือกไฟล์ backup เพื่อ restore
 - ต้องมี confirmation หลายชั้น
 - ต้องมี audit log ทุกครั้ง
 - ควรจำกัดสิทธิ์อย่างเข้มงวด
 
-### 3. Target Detail Page
-
-- มีหน้า detail แยกของแต่ละ target
-- ดู backup ล่าสุดของ target เดียว
-- ดูประวัติ backup ของ target เดียว
-- กด Backup Now จากหน้า detail ได้
-
-### 4. Notification Summary
-
-- สรุปผล backup รายวันส่งให้ Admin
-- สรุป target ที่ fail บ่อย
-- สรุป target ที่ไม่ถูก backup ตามรอบ
-
-### 5. Security เพิ่มเติม
+### 2. Security เพิ่มเติม
 
 - ตรวจสิทธิ์การเข้าถึงไฟล์ backup ให้ละเอียดขึ้น
 - ตรวจ permission ของ backup folder
 - พิจารณาแยก role ในอนาคต
 
-### 6. Queue Monitoring
-
-- หน้า monitor queue / worker status
-- หน้า retry failed job
-- แสดง failed jobs ใน UI
-
-### 7. UX/Validation เพิ่มเติม
+### 3. UX/Validation เพิ่มเติม
 
 - แสดงผลการบันทึก target ให้ชัดในหน้า list/detail
 - ปรับข้อความภาษาไทยที่ยังเพี้ยนจาก encoding ในบางไฟล์เก่า
@@ -314,12 +308,9 @@ MAIL_MAILER=log
 
 ## ลำดับงานที่แนะนำต่อจากนี้
 
-1. Export Reports
-2. Target Detail Page
-3. Notification Summary
-4. Restore แบบปลอดภัย
-5. Queue Monitoring
-6. Security เพิ่มเติม
+1. Restore แบบปลอดภัย
+2. Security เพิ่มเติม
+3. UX/Validation เพิ่มเติม
 
 ---
 

@@ -168,6 +168,7 @@
                     <div class="rounded-2xl bg-slate-50 p-4 font-mono text-sm text-slate-900">composer schedule:work</div>
                     <div class="rounded-2xl bg-slate-50 p-4 font-mono text-sm text-slate-900">{{ $scheduledBackupCommand }}</div>
                     <div class="rounded-2xl bg-slate-50 p-4 font-mono text-sm text-slate-900">{{ $cleanupCommand }}</div>
+                    <div class="rounded-2xl bg-slate-50 p-4 font-mono text-sm text-slate-900">{{ $dailySummaryCommand }}</div>
                 </div>
             </article>
 

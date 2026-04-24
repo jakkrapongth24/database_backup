@@ -64,6 +64,30 @@ class BackupTargetController extends Controller
         ]);
     }
 
+    public function show(BackupTarget $backupTarget): View
+    {
+        $jobsQuery = $backupTarget->jobs();
+        $latestSuccess = (clone $jobsQuery)->where('status', 'success')->latest('started_at')->first();
+        $latestFailed = (clone $jobsQuery)->where('status', 'failed')->latest('started_at')->first();
+
+        $summary = [
+            'total' => (clone $jobsQuery)->count(),
+            'queued' => (clone $jobsQuery)->where('status', 'queued')->count(),
+            'running' => (clone $jobsQuery)->where('status', 'running')->count(),
+            'success' => (clone $jobsQuery)->where('status', 'success')->count(),
+            'failed' => (clone $jobsQuery)->where('status', 'failed')->count(),
+            'total_size' => $this->humanBytes((int) (clone $jobsQuery)->where('status', 'success')->sum('file_size')),
+            'last_success_at' => $latestSuccess?->started_at,
+            'last_failed_at' => $latestFailed?->started_at,
+        ];
+
+        return view('backup-targets.show', [
+            'target' => $backupTarget,
+            'jobs' => $backupTarget->jobs()->latest('started_at')->paginate(10),
+            'summary' => $summary,
+        ]);
+    }
+
     public function update(Request $request, BackupTarget $backupTarget, AuditLogger $audit): RedirectResponse
     {
         $before = $this->safeTargetPayload($backupTarget);
@@ -175,6 +199,26 @@ class BackupTargetController extends Controller
     private function normalizeHost(string $host): string
     {
         return strtolower(trim($host)) === 'localhost' ? '127.0.0.1' : $host;
+    }
+
+    private function humanBytes(int $bytes): string
+    {
+        if ($bytes <= 0) {
+            return '-';
+        }
+
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $size = (float) $bytes;
+
+        foreach ($units as $unit) {
+            if ($size < 1024 || $unit === 'TB') {
+                return number_format($size, $unit === 'B' ? 0 : 2).' '.$unit;
+            }
+
+            $size /= 1024;
+        }
+
+        return '-';
     }
 
     /**
