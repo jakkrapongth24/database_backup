@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AutomationGuideController;
+use App\Http\Controllers\BackupCleanupController;
 use App\Http\Controllers\BackupJobController;
 use App\Http\Controllers\BackupTargetController;
 use App\Http\Controllers\DashboardController;
@@ -20,6 +21,8 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::post('/backup-cleanup/preview', [BackupCleanupController::class, 'preview'])->name('backup-cleanup.preview');
+    Route::delete('/backup-cleanup', [BackupCleanupController::class, 'destroy'])->name('backup-cleanup.destroy');
     Route::resource('backup-targets', BackupTargetController::class);
     Route::post('/backup-targets/{backup_target}/test-connection', [BackupTargetController::class, 'testConnection'])
         ->name('backup-targets.test-connection');

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Backup Target | DB Backup')
+@section('title', 'แก้ไข Backup Target | DB Backup')
 
 @section('body')
     <div class="w-full px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
@@ -10,11 +10,9 @@
                 <div>
                     <h1 class="text-3xl font-black tracking-tight text-slate-950">แก้ไข {{ $target->name }}</h1>
                     <p class="mt-2 text-sm text-slate-500">ปรับข้อมูล connection, path และรอบการ backup</p>
-                    <p class="mt-2 text-xs font-bold text-emerald-700">Last saved: {{ $target->updated_at?->format('Y-m-d H:i:s') ?? '-' }}</p>
+                    <p class="mt-2 text-xs font-bold text-emerald-700">บันทึกล่าสุด: {{ $target->updated_at?->format('Y-m-d H:i:s') ?? '-' }}</p>
                 </div>
-                <a href="{{ route('backup-targets.index') }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                    กลับรายการ
-                </a>
+                <a href="{{ route('backup-targets.index') }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50">กลับรายการ</a>
             </div>
         </header>
 

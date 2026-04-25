@@ -78,7 +78,7 @@
                 <div class="md:col-span-2">
                     <label for="notification_emails" class="block text-sm font-black text-slate-700">Notification Emails</label>
                     <textarea id="notification_emails" name="notification_emails" rows="3" placeholder="admin@example.com, dba@example.com" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none ring-emerald-400/20 transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4">{{ old('notification_emails', $target->notification_emails) }}</textarea>
-                    <p class="mt-2 text-xs text-slate-500">ใส่อีเมลคั่นด้วย comma หรือขึ้นบรรทัดใหม่ ระบบจะส่งแจ้งเตือนเมื่อ backup ล้มเหลว ถ้าเว้นว่างจะ fallback ไปที่ค่า `BACKUP_ALERT_EMAILS` ใน `.env`</p>
+                    <p class="mt-2 text-xs text-slate-500">ใส่อีเมลคั่นด้วย comma หรือขึ้นบรรทัดใหม่ ระบบจะแจ้งเตือนเมื่อ backup ล้มเหลว ถ้าเว้นว่างจะใช้ `BACKUP_ALERT_EMAILS` ใน `.env`</p>
                     @error('notification_emails') <p class="mt-2 text-sm font-bold text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
@@ -130,12 +130,8 @@
         </div>
 
         <div class="flex flex-col gap-3">
-            <button class="rounded-2xl bg-emerald-500 px-6 py-4 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">
-                บันทึกข้อมูล
-            </button>
-            <a href="{{ route('backup-targets.index') }}" class="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                ยกเลิก
-            </a>
+            <button class="rounded-2xl bg-emerald-500 px-6 py-4 text-sm font-black text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">บันทึกข้อมูล</button>
+            <a href="{{ route('backup-targets.index') }}" class="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50">ยกเลิก</a>
         </div>
     </aside>
 </div>

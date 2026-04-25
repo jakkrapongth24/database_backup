@@ -11,9 +11,7 @@
                     <h1 class="text-3xl font-black tracking-tight text-slate-950">เพิ่มระบบใหม่</h1>
                     <p class="mt-2 text-sm text-slate-500">เพิ่มฐานข้อมูลที่ต้องการให้ระบบจัดการ backup</p>
                 </div>
-                <a href="{{ route('backup-targets.index') }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                    กลับรายการ
-                </a>
+                <a href="{{ route('backup-targets.index') }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50">กลับรายการ</a>
             </div>
         </header>
 

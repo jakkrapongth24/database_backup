@@ -209,13 +209,14 @@ Artisan::command('backup:cleanup {--target= : Cleanup only one backup target id}
     }
 
     $this->table(
-        ['Target', 'Job ID', 'Finished At', 'File Exists', 'Size', 'Path'],
+        ['Target', 'Job ID', 'Finished At', 'Local File', 'Offsite File', 'Total Size', 'Path'],
         $result['items']->map(fn (array $item): array => [
             $item['target'],
             $item['job_id'],
             $item['finished_at'],
             $item['file_exists'] ? 'yes' : 'no',
-            number_format($item['file_size']).' B',
+            $item['offsite_file_exists'] ? 'yes' : 'no',
+            number_format($item['file_size'] + $item['offsite_file_size']).' B',
             $item['file_path'],
         ])->all(),
     );
@@ -226,7 +227,7 @@ Artisan::command('backup:cleanup {--target= : Cleanup only one backup target id}
         return 0;
     }
 
-    $this->info("Deleted {$result['deleted_files']} files and {$result['deleted_records']} records. Freed ".number_format($result['freed_bytes']).' bytes.');
+    $this->info("Deleted {$result['deleted_files']} local files, {$result['deleted_offsite_files']} offsite files, and {$result['deleted_records']} records. Freed ".number_format($result['freed_bytes']).' bytes.');
 
     return 0;
 })->purpose('Remove expired successful backup files by each target retention_days');
@@ -340,7 +341,7 @@ Artisan::command('backup:copy-offsite {--target= : Copy verified backups for one
     return $failed > 0 ? 1 : 0;
 })->purpose('Copy verified backup files to configured offsite storage');
 
-Artisan::command('backup:restore-drill {--target= : Run drill for one target id} {--job= : Run drill for one backup job id} {--dry-run : Show selected targets without creating drill records}', function (
+Artisan::command('backup:restore-drill {--target= : Run drill for one target id} {--job= : Run drill for one backup job id} {--actual-restore : Restore backup into a separate test database during the drill} {--test-database= : Test database name or pattern} {--keep-test-database : Keep the test database after the drill} {--dry-run : Show selected targets without creating drill records}', function (
     RestoreDrillService $restoreDrillService,
 ): int {
     $target = null;
@@ -400,12 +401,25 @@ Artisan::command('backup:restore-drill {--target= : Run drill for one target id}
     }
 
     $failed = 0;
+    $options = [];
+
+    if ($this->option('actual-restore')) {
+        $options['actual_restore'] = true;
+    }
+
+    if ($this->option('test-database')) {
+        $options['test_database'] = (string) $this->option('test-database');
+    }
+
+    if ($this->option('keep-test-database')) {
+        $options['keep_database'] = true;
+    }
 
     foreach ($targets as $backupTarget) {
         $selectedJob = $job && $job->backup_target_id === $backupTarget->id
             ? $job
             : null;
-        $drill = $restoreDrillService->runForTarget($backupTarget, $selectedJob);
+        $drill = $restoreDrillService->runForTarget($backupTarget, $selectedJob, options: $options);
 
         if ($drill->status === 'success') {
             $this->info("Restore drill #{$drill->id} passed for {$backupTarget->name}");

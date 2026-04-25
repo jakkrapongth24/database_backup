@@ -76,6 +76,54 @@ test('restore drill passes for latest verified readable backup', function () {
         ->and($drill->checks)->not->toBeEmpty();
 });
 
+test('restore drill skips actual restore unless explicitly enabled', function () {
+    putenv('BACKUP_RESTORE_DRILL_ACTUAL_RESTORE=false');
+    $_ENV['BACKUP_RESTORE_DRILL_ACTUAL_RESTORE'] = 'false';
+    $_SERVER['BACKUP_RESTORE_DRILL_ACTUAL_RESTORE'] = 'false';
+
+    $directory = storage_path('app/testing-drills');
+
+    if (! is_dir($directory)) {
+        mkdir($directory, 0775, true);
+    }
+
+    $filePath = $directory.DIRECTORY_SEPARATOR.'readiness-only.sql';
+    file_put_contents($filePath, 'select 1;');
+
+    $target = createDrillTarget();
+    $job = createDrillBackupJob($target, $filePath);
+
+    $drill = app(RestoreDrillService::class)->runForTarget($target, $job);
+
+    expect($drill->status)->toBe('success')
+        ->and(collect($drill->checks)->firstWhere('label', 'Restore จริงเข้า Test Database')['message'])
+        ->toContain('ข้ามขั้นตอนนี้');
+});
+
+test('actual restore drill refuses production database as test database', function () {
+    Mail::fake();
+
+    $directory = storage_path('app/testing-drills');
+
+    if (! is_dir($directory)) {
+        mkdir($directory, 0775, true);
+    }
+
+    $filePath = $directory.DIRECTORY_SEPARATOR.'unsafe-drill.sql';
+    file_put_contents($filePath, 'select 1;');
+
+    $target = createDrillTarget();
+    $job = createDrillBackupJob($target, $filePath);
+
+    $drill = app(RestoreDrillService::class)->runForTarget($target, $job, options: [
+        'actual_restore' => true,
+        'test_database' => 'accounting',
+    ]);
+
+    expect($drill->status)->toBe('failed')
+        ->and($drill->error_message)->toBe('ชื่อ Test Database สำหรับ Restore Drill ต้องไม่ตรงกับชื่อฐานข้อมูลจริง');
+});
+
 test('restore drill fails when backup verification has not passed', function () {
     $directory = storage_path('app/testing-drills');
 
@@ -158,6 +206,37 @@ test('restore drill can be run from web page button', function () {
     $this->assertDatabaseHas('restore_drills', [
         'backup_target_id' => $target->id,
         'status' => 'success',
+    ]);
+});
+
+test('restore drill actual restore options can be submitted from web page', function () {
+    actingAsDrillAdmin();
+    Mail::fake();
+
+    $directory = storage_path('app/testing-drills');
+
+    if (! is_dir($directory)) {
+        mkdir($directory, 0775, true);
+    }
+
+    $filePath = $directory.DIRECTORY_SEPARATOR.'web-actual-restore.sql';
+    file_put_contents($filePath, 'select 1;');
+
+    $target = createDrillTarget();
+    createDrillBackupJob($target, $filePath);
+
+    $this->post(route('restore-drills.run'), [
+        'backup_target_id' => $target->id,
+        'actual_restore' => '1',
+        'test_database' => 'accounting',
+    ])
+        ->assertRedirect(route('restore-drills.index'))
+        ->assertSessionHas('error');
+
+    $this->assertDatabaseHas('restore_drills', [
+        'backup_target_id' => $target->id,
+        'status' => 'failed',
+        'error_message' => 'ชื่อ Test Database สำหรับ Restore Drill ต้องไม่ตรงกับชื่อฐานข้อมูลจริง',
     ]);
 });
 

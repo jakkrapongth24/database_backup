@@ -7,7 +7,7 @@
         <header class="flex flex-col gap-5 rounded-[2rem] bg-white p-6 shadow-sm shadow-slate-200/80 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <p class="text-xs font-black uppercase tracking-[0.28em] text-emerald-600">Backup Targets</p>
-                <h1 class="mt-3 text-3xl font-black tracking-tight text-slate-950">จัดการระบบที่จะ Backup</h1>
+                <h1 class="mt-3 text-3xl font-black tracking-tight text-slate-950">จัดการระบบที่ต้อง Backup</h1>
                 <p class="mt-2 text-sm leading-6 text-slate-500">เพิ่มฐานข้อมูล MariaDB/MySQL ทดสอบ connection และกด backup ได้จากหน้านี้</p>
             </div>
             <div class="flex flex-col gap-3 sm:flex-row">
@@ -37,12 +37,10 @@
                             <tr class="align-top transition hover:bg-emerald-50/40">
                                 <td class="px-6 py-5">
                                     <div class="flex items-start gap-3">
-                                        <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 font-black text-emerald-700">
-                                            DB
-                                        </div>
+                                        <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 font-black text-emerald-700">DB</div>
                                         <div>
                                             <a href="{{ route('backup-targets.show', $target) }}" class="font-black text-slate-950 transition hover:text-emerald-600">{{ $target->name }}</a>
-                                            <div class="mt-1 text-sm text-slate-500">{{ strtoupper($target->db_type) }} · {{ $target->username }}</div>
+                                            <div class="mt-1 text-sm text-slate-500">{{ strtoupper($target->db_type) }} / {{ $target->username }}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -56,13 +54,13 @@
                                         <div class="mt-2 text-xs text-slate-500">เวลา {{ substr($target->schedule_time, 0, 5) }}</div>
                                     @endif
                                     @if (in_array($target->id, $dueTargetIds ?? [], true))
-                                        <div class="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Due now</div>
+                                        <div class="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">ถึงรอบแล้ว</div>
                                     @endif
                                 </td>
                                 <td class="px-6 py-5">
                                     <div>
                                         <span class="rounded-full px-3 py-1 text-xs font-black {{ $target->is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
-                                            {{ $target->is_active ? 'Active' : 'Inactive' }}
+                                            {{ $target->is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน' }}
                                         </span>
                                     </div>
                                     <div class="mt-3 text-xs">
@@ -79,28 +77,18 @@
                                     <div class="flex flex-wrap justify-end gap-2">
                                         <form method="POST" action="{{ route('backup-targets.backup-now', $target) }}" class="js-confirm" data-confirm-title="เริ่ม Backup?" data-confirm-text="ระบบจะเริ่ม backup {{ $target->name }} ทันที">
                                             @csrf
-                                            <button class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-600">
-                                                Backup Now
-                                            </button>
+                                            <button class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-600">Backup Now</button>
                                         </form>
                                         <form method="POST" action="{{ route('backup-targets.test-connection', $target) }}">
                                             @csrf
-                                            <button class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
-                                                Test
-                                            </button>
+                                            <button class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">ทดสอบ</button>
                                         </form>
-                                        <a href="{{ route('backup-targets.edit', $target) }}" class="rounded-xl border border-slate-200 px-4 py-2 text-center text-sm font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50">
-                                            Edit
-                                        </a>
-                                        <a href="{{ route('backup-targets.show', $target) }}" class="rounded-xl border border-slate-200 px-4 py-2 text-center text-sm font-black text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
-                                            Detail
-                                        </a>
+                                        <a href="{{ route('backup-targets.edit', $target) }}" class="rounded-xl border border-slate-200 px-4 py-2 text-center text-sm font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50">แก้ไข</a>
+                                        <a href="{{ route('backup-targets.show', $target) }}" class="rounded-xl border border-slate-200 px-4 py-2 text-center text-sm font-black text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">รายละเอียด</a>
                                         <form method="POST" action="{{ route('backup-targets.destroy', $target) }}" class="js-confirm" data-confirm-title="ลบระบบนี้?" data-confirm-text="การลบ {{ $target->name }} จะลบประวัติ backup ของ target นี้ด้วย">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-black text-rose-600 transition hover:bg-rose-50">
-                                                Delete
-                                            </button>
+                                            <button class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-black text-rose-600 transition hover:bg-rose-50">ลบ</button>
                                         </form>
                                     </div>
                                 </td>
@@ -111,9 +99,7 @@
                                     <div class="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-emerald-100 text-2xl font-black text-emerald-700">DB</div>
                                     <h2 class="mt-5 text-2xl font-black text-slate-950">ยังไม่มีระบบที่ต้อง Backup</h2>
                                     <p class="mt-2 text-slate-500">เริ่มจากเพิ่มฐานข้อมูลแรก เช่น HOSxP, HR, Finance หรือระบบภายในอื่น ๆ</p>
-                                    <a href="{{ route('backup-targets.create') }}" class="mt-6 inline-flex rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-600">
-                                        เพิ่มระบบแรก
-                                    </a>
+                                    <a href="{{ route('backup-targets.create') }}" class="mt-6 inline-flex rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-600">เพิ่มระบบแรก</a>
                                 </td>
                             </tr>
                         @endforelse

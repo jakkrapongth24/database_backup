@@ -161,6 +161,9 @@
                     </p>
                     <div class="mt-4 break-all rounded-2xl bg-white p-4 font-mono text-sm text-slate-900">{{ $offsitePath }}</div>
                     <div class="mt-3 break-all rounded-2xl bg-white p-4 font-mono text-sm text-slate-900">{{ $offsiteCopyCommand }}</div>
+                    <p class="mt-3 text-sm leading-6 text-slate-500">
+                        คำสั่ง cleanup จะลบทั้งไฟล์ local และไฟล์ offsite ที่หมดอายุตาม retention ของแต่ละ target โดยลบเฉพาะไฟล์ที่อยู่ใต้ BACKUP_OFFSITE_PATH เท่านั้น
+                    </p>
                 </div>
             </div>
 
@@ -182,8 +185,27 @@
             <div class="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p class="text-lg font-semibold text-slate-950">ตัวอย่างค่าใน .env</p>
                 <pre class="mt-4 overflow-x-auto rounded-2xl bg-white p-4 text-sm leading-6 text-slate-900">BACKUP_RESTORE_BINARY_PATH=C:/wamp64/bin/mariadb/mariadb11.4.9/bin/mariadb.exe
+BACKUP_RESTORE_DRILL_ACTUAL_RESTORE=false
+BACKUP_RESTORE_DRILL_DATABASE=
+BACKUP_RESTORE_DRILL_DATABASE_SUFFIX=_restore_drill
+BACKUP_RESTORE_DRILL_KEEP_DATABASE=false
 BACKUP_OFFSITE_PATH=D:/DB_Backup_Offsite
 QUEUE_CONNECTION=database</pre>
+            </div>
+
+            <div class="mt-6 rounded-3xl border border-indigo-200 bg-indigo-50 p-5">
+                <p class="text-lg font-semibold text-indigo-950">Restore Drill แบบ Restore จริง</p>
+                <p class="mt-2 text-sm leading-6 text-indigo-900/80">ค่าเริ่มต้นจะตรวจเฉพาะความพร้อมของ backup เท่านั้น ถ้าตั้ง <span class="font-mono">BACKUP_RESTORE_DRILL_ACTUAL_RESTORE=true</span> ระบบจะสร้าง test database แยก, restore backup เข้าไป, นับจำนวนตาราง แล้วลบ test database หลังตรวจเสร็จ</p>
+                <div class="mt-4 grid gap-3 text-sm md:grid-cols-2">
+                    <div class="rounded-2xl bg-white p-4">
+                        <p class="font-semibold text-indigo-950">โหมดปัจจุบัน</p>
+                        <p class="mt-1 font-mono text-slate-900">{{ $restoreDrillActualRestore }}</p>
+                    </div>
+                    <div class="rounded-2xl bg-white p-4">
+                        <p class="font-semibold text-indigo-950">รูปแบบชื่อ Test Database</p>
+                        <p class="mt-1 break-all font-mono text-slate-900">{{ $restoreDrillDatabase }}</p>
+                    </div>
+                </div>
             </div>
         </section>
 

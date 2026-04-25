@@ -985,3 +985,207 @@ php artisan migrate --path=database/migrations/2026_04_24_000006_create_restore_
 - เพิ่ม retention cleanup ฝั่ง offsite path ถ้าต้องการลบไฟล์สำรองปลายทางตามอายุ
 - เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
 - ค่อย ๆ แก้ encoding ภาษาไทยในไฟล์เก่าที่แสดงเป็น mojibake ในบางจุด
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Restore Drill Actual Restore)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่มโหมด actual restore สำหรับ Restore Drill แบบ opt-in
+- ค่าเริ่มต้นยังเป็น readiness check เดิม ไม่ restore จริง เพื่อไม่ให้กระทบฐานข้อมูลโดยไม่ตั้งใจ
+- ถ้าตั้ง `BACKUP_RESTORE_DRILL_ACTUAL_RESTORE=true` ระบบจะ:
+  - เลือกชื่อฐานทดสอบจาก `BACKUP_RESTORE_DRILL_DATABASE`
+  - ถ้าไม่ตั้ง จะใช้ชื่อ `{target_database}_restore_drill`
+  - บังคับไม่ให้ชื่อฐานทดสอบตรงกับฐาน production
+  - `DROP DATABASE IF EXISTS` แล้ว `CREATE DATABASE` สำหรับฐานทดสอบ
+  - restore backup เข้า test database
+  - นับจำนวน table หลัง restore
+  - ลบ test database ทิ้งหลังจบงาน ยกเว้นตั้ง `BACKUP_RESTORE_DRILL_KEEP_DATABASE=true`
+- เพิ่มค่า `.env.example`
+  - `BACKUP_RESTORE_DRILL_ACTUAL_RESTORE=false`
+  - `BACKUP_RESTORE_DRILL_DATABASE=`
+  - `BACKUP_RESTORE_DRILL_DATABASE_SUFFIX=_restore_drill`
+  - `BACKUP_RESTORE_DRILL_KEEP_DATABASE=false`
+- เพิ่มคำอธิบายในหน้า `Automation Guide`
+- เพิ่ม tests สำหรับ:
+  - readiness-only mode จะ skip actual restore
+  - actual restore mode จะปฏิเสธถ้าฐานทดสอบชื่อเดียวกับ production
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- ทดสอบ actual restore กับ MariaDB/MySQL จริงบนเครื่องที่ตั้งค่า test database ได้
+- เพิ่ม export restore drill report เป็น CSV/Excel/PDF ถ้ายังไม่ได้ deploy ในฐาน/branch ปัจจุบัน
+- เพิ่ม retention cleanup ฝั่ง offsite path ถ้าต้องการลบไฟล์สำรองปลายทางตามอายุ
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Restore Drill ใช้งานง่าย)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่มตัวเลือกหน้า `Restore Drills` ให้เปิด actual restore ได้จากหน้าเว็บ
+  - checkbox `Run actual restore into test database`
+  - ช่อง `Test database name`
+  - checkbox `Keep test database after drill`
+- ถ้าไม่ติ๊ก actual restore ระบบจะยังทำ readiness check แบบปลอดภัยเหมือนเดิม
+- ถ้าติ๊ก actual restore ระบบจะใช้ค่าจากฟอร์มทันที ไม่ต้องแก้ `.env`
+- เพิ่ม option ให้คำสั่ง Artisan:
+
+```bash
+php artisan backup:restore-drill --actual-restore
+php artisan backup:restore-drill --actual-restore --target=1
+php artisan backup:restore-drill --actual-restore --test-database=accounting_restore_drill
+php artisan backup:restore-drill --actual-restore --keep-test-database
+```
+
+- เพิ่ม test สำหรับการส่ง actual restore options จากหน้าเว็บ
+
+### วิธีใช้แบบง่าย
+
+1. เข้าเมนู `Restore Drills`
+2. เลือก target ที่ต้องการ หรือปล่อยว่างเพื่อตรวจทุก target
+3. ถ้าต้องการ restore จริง ให้ติ๊ก `Run actual restore into test database`
+4. ช่อง `Test database name` ปล่อยว่างได้ ระบบจะใช้ `{database}_restore_drill`
+5. กดปุ่มตรวจ Restore
+
+ระบบจะไม่ยอมใช้ชื่อ test database ที่ตรงกับ database จริง
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Offsite Retention Cleanup)
+
+### ทำเพิ่มแล้ว
+
+- ปรับ `BackupRetentionService` ให้ cleanup ไฟล์ offsite ที่หมดอายุพร้อมไฟล์ local
+- ใช้ `retention_days` ของแต่ละ target เหมือน cleanup เดิม
+- dry-run จะแสดงด้วยว่า offsite file มีอยู่หรือไม่
+- ตอนลบจริงจะนับเพิ่ม:
+  - `deleted_offsite_files`
+  - `freed_bytes` รวมขนาดไฟล์ offsite
+- เพิ่ม safety guard: ลบ offsite file เฉพาะ path ที่อยู่ใต้ `BACKUP_OFFSITE_PATH` เท่านั้น
+- ปรับคำสั่ง `php artisan backup:cleanup` ให้แสดงจำนวน local/offsite ที่ลบ
+- เพิ่มคำอธิบายในหน้า `Automation Guide`
+- เพิ่ม test ใหม่ `tests/Feature/BackupRetentionTest.php`
+  - ลบไฟล์ local และ offsite ที่หมดอายุได้
+  - ไม่ลบ offsite path ที่อยู่นอก `BACKUP_OFFSITE_PATH`
+
+### วิธีใช้
+
+ตรวจดูก่อนว่าจะลบอะไร:
+
+```bash
+php artisan backup:cleanup --dry-run
+```
+
+ลบจริง:
+
+```bash
+php artisan backup:cleanup
+```
+
+ลบเฉพาะ target:
+
+```bash
+php artisan backup:cleanup --target=1
+```
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+- ค่อย ๆ แก้ encoding ภาษาไทยในไฟล์เก่าที่แสดงเป็น mojibake ในบางจุด
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบแก้ภาษา Dashboard)
+
+### ทำเพิ่มแล้ว
+
+- แก้ข้อความภาษาไทยบนหน้า `Dashboard` จาก mojibake ให้เป็นภาษาไทยอ่านง่าย
+- ครอบคลุมส่วน:
+  - hero ด้านบน
+  - summary cards
+  - scheduled backup warning
+  - quick actions
+  - กล่อง cleanup ผ่านหน้าเว็บ
+  - automation command cards
+- ไม่เปลี่ยน logic หรือข้อมูลที่หน้า Dashboard ใช้
+
+### ตรวจสอบแล้ว
+
+- `php -l resources/views/dashboard.blade.php` ผ่าน
+- `php artisan test --filter=BackupRetentionTest` ผ่าน 3 tests
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- ค่อย ๆ แก้ encoding ภาษาไทยในหน้าเก่าอื่น ๆ เช่น Backup Targets, Backup History, Reports, Restore Drills
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบแก้ภาษา Backup Targets)
+
+### ทำเพิ่มแล้ว
+
+- แก้ข้อความภาษาไทยบนหน้า Backup Targets ให้เป็นภาษาไทยอ่านง่าย
+- ครอบคลุมไฟล์:
+  - `resources/views/backup-targets/index.blade.php`
+  - `resources/views/backup-targets/create.blade.php`
+  - `resources/views/backup-targets/edit.blade.php`
+  - `resources/views/backup-targets/_form.blade.php`
+  - `resources/views/backup-targets/show.blade.php`
+- แก้ข้อความ confirm action สำคัญ:
+  - Backup Now
+  - Delete target
+- แก้ข้อความบนฟอร์ม:
+  - Connection
+  - Storage & Schedule
+  - Notification emails
+  - Retention
+  - คำแนะนำการกรอก host/port/password
+- ไม่เปลี่ยน logic หรือข้อมูลที่หน้า Backup Targets ใช้
+
+### ตรวจสอบแล้ว
+
+- `php -l` สำหรับ Blade ใน `resources/views/backup-targets/*` ผ่าน
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- แก้ encoding ภาษาไทยในหน้า Backup History, Reports, Restore Drills, Restore
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Cleanup ใช้งานผ่านหน้าเว็บ)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่ม controller `BackupCleanupController`
+- เพิ่ม route สำหรับกดจากหน้าเว็บ:
+  - `POST /backup-cleanup/preview`
+  - `DELETE /backup-cleanup`
+- เพิ่มกล่อง `ล้างไฟล์ Backup หมดอายุ` บนหน้า Dashboard
+- เพิ่มปุ่ม:
+  - `ตรวจไฟล์หมดอายุ` สำหรับ dry-run และแสดงรายการก่อนลบ
+  - `ลบไฟล์หมดอายุ` สำหรับลบจริง พร้อม confirm
+- หลังตรวจหรือลบ ระบบจะแสดง summary:
+  - พบรายการ
+  - ลบไฟล์ local
+  - ลบไฟล์ offsite
+  - ลบ record
+  - คืนพื้นที่
+- แสดงรายการตัวอย่างสูงสุด 20 รายการบน Dashboard
+- เพิ่ม test ว่ากด preview แล้วไม่ลบไฟล์ และกดลบจริงแล้วลบไฟล์ local/offsite ได้
+
+### วิธีใช้แบบไม่ต้องพิมพ์คำสั่ง
+
+1. เข้า Dashboard
+2. ไปที่กล่อง `ล้างไฟล์ Backup หมดอายุ`
+3. กด `ตรวจไฟล์หมดอายุ`
+4. ถ้ารายการถูกต้อง ค่อยกด `ลบไฟล์หมดอายุ`
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+- ค่อย ๆ แก้ encoding ภาษาไทยในไฟล์เก่าที่แสดงเป็น mojibake ในบางจุด

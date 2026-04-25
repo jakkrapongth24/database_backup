@@ -40,7 +40,16 @@ class RestoreDrillController extends Controller
     {
         $payload = $request->validate([
             'backup_target_id' => ['nullable', 'integer', 'exists:backup_targets,id'],
+            'actual_restore' => ['nullable', 'boolean'],
+            'test_database' => ['nullable', 'string', 'max:191', 'regex:/^[A-Za-z0-9_{}]+$/'],
+            'keep_database' => ['nullable', 'boolean'],
         ]);
+
+        $options = [
+            'actual_restore' => $request->boolean('actual_restore'),
+            'test_database' => trim((string) ($payload['test_database'] ?? '')) ?: null,
+            'keep_database' => $request->boolean('keep_database'),
+        ];
 
         $targets = BackupTarget::query()
             ->where('is_active', true)
@@ -56,7 +65,7 @@ class RestoreDrillController extends Controller
         $failed = 0;
 
         foreach ($targets as $target) {
-            $drill = $restoreDrillService->runForTarget($target, userId: Auth::id());
+            $drill = $restoreDrillService->runForTarget($target, userId: Auth::id(), options: $options);
 
             if ($drill->status === 'success') {
                 $passed++;

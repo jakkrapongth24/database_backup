@@ -19,6 +19,22 @@
                         <option value="{{ $target->id }}">{{ $target->name }}</option>
                     @endforeach
                 </select>
+                <label class="flex items-start gap-3 rounded-2xl bg-white p-3 text-sm text-emerald-950">
+                    <input type="checkbox" name="actual_restore" value="1" class="mt-1 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-200">
+                    <span>
+                        <span class="block font-semibold">ทดสอบ Restore จริงเข้า Test Database</span>
+                        <span class="mt-1 block text-xs leading-5 text-emerald-700">ระบบจะสร้างฐานทดสอบแยก, restore backup เข้าไป, นับจำนวนตาราง แล้วลบทิ้งตามค่าเริ่มต้น</span>
+                    </span>
+                </label>
+                <div>
+                    <label for="test_database" class="text-xs font-semibold text-emerald-950">ชื่อ Test Database</label>
+                    <input id="test_database" type="text" name="test_database" placeholder="{database}_restore_drill" class="mt-1 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-mono outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                    <p class="mt-1 text-xs leading-5 text-emerald-700">ปล่อยว่างได้ ระบบจะใช้ชื่อฐานจริงต่อท้ายด้วย _restore_drill และต้องไม่เป็นชื่อเดียวกับฐานจริง</p>
+                </div>
+                <label class="flex items-center gap-3 rounded-2xl bg-white px-3 py-2 text-sm font-semibold text-emerald-950">
+                    <input type="checkbox" name="keep_database" value="1" class="rounded border-emerald-300 text-emerald-600 focus:ring-emerald-200">
+                    เก็บ Test Database ไว้หลังตรวจเสร็จ
+                </label>
                 <button class="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">
                     ตรวจ Restore ตอนนี้
                 </button>
