@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\DecodesUrlIds;
 use App\Models\BackupTarget;
 use App\Models\RestoreDrill;
 use App\Services\RestoreDrillService;
@@ -16,6 +17,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RestoreDrillController extends Controller
 {
+    use DecodesUrlIds;
+
     public function index(Request $request): View
     {
         $filters = $this->filters($request);
@@ -38,6 +41,8 @@ class RestoreDrillController extends Controller
 
     public function run(Request $request, RestoreDrillService $restoreDrillService): RedirectResponse
     {
+        $this->decodeUrlIds($request, ['backup_target_id']);
+
         $payload = $request->validate([
             'backup_target_id' => ['nullable', 'integer', 'exists:backup_targets,id'],
             'actual_restore' => ['nullable', 'boolean'],
@@ -146,12 +151,18 @@ class RestoreDrillController extends Controller
      */
     private function filters(Request $request): array
     {
-        return $request->validate([
+        $this->decodeUrlIds($request, ['target_id']);
+
+        $filters = $request->validate([
             'status' => ['nullable', 'in:running,success,failed'],
             'target_id' => ['nullable', 'integer', 'exists:backup_targets,id'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
         ]);
+
+        $this->encodeUrlIds($request, ['target_id']);
+
+        return $filters;
     }
 
     /**

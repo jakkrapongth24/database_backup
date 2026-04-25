@@ -10,7 +10,7 @@
                 <h1 class="mt-3 text-3xl font-semibold tracking-tight text-slate-950">ประวัติการ Restore</h1>
                 <p class="mt-2 text-sm leading-6 text-slate-500">ติดตามว่า restore ครั้งไหนสำเร็จ ล้มเหลว ใช้แหล่งข้อมูลใด และมี safety backup อะไรก่อนเริ่มงาน</p>
             </div>
-            <a href="{{ route('restore.index', ['target_id' => $filters['target_id'] ?? null]) }}" class="rounded-2xl bg-rose-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-rose-200 transition hover:-translate-y-0.5 hover:bg-rose-600">
+            <a href="{{ route('restore.index', ['target_id' => ($filters['target_id'] ?? null) ? \App\Support\UrlId::encode($filters['target_id']) : null]) }}" class="rounded-2xl bg-rose-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-rose-200 transition hover:-translate-y-0.5 hover:bg-rose-600">
                 เปิดหน้า Restore
             </a>
         </header>
@@ -46,7 +46,7 @@
                     <select name="target_id" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-rose-300 focus:bg-white">
                         <option value="">ทั้งหมด</option>
                         @foreach ($targets as $target)
-                            <option value="{{ $target->id }}" @selected((string) ($filters['target_id'] ?? '') === (string) $target->id)>{{ $target->name }}</option>
+                            <option value="{{ $target->getRouteKey() }}" @selected((string) ($filters['target_id'] ?? '') === (string) $target->id)>{{ $target->name }}</option>
                         @endforeach
                     </select>
                 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\UrlId;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +30,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class BackupJob extends Model
 {
+    public function getRouteKey(): mixed
+    {
+        return UrlId::encode($this->getKey());
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $id = UrlId::decode($value);
+
+        if ($id === null) {
+            return null;
+        }
+
+        return $this->where($field ?? $this->getRouteKeyName(), $id)->first();
+    }
+
     protected function casts(): array
     {
         return [

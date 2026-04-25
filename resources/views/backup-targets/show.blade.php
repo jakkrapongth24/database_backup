@@ -22,7 +22,7 @@
             <div class="flex flex-col gap-3 sm:flex-row">
                 <a href="{{ route('backup-targets.index') }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">กลับไปหน้า Targets</a>
                 <a href="{{ route('backup-targets.edit', $target) }}" class="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-center text-sm font-semibold text-sky-700 transition hover:bg-sky-100">แก้ไข</a>
-                <a href="{{ route('restore.index', ['target_id' => $target->id]) }}" class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-center text-sm font-semibold text-rose-700 transition hover:bg-rose-100">Restore</a>
+                <a href="{{ route('restore.index', ['target_id' => $target->getRouteKey()]) }}" class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-center text-sm font-semibold text-rose-700 transition hover:bg-rose-100">Restore</a>
                 <form method="POST" action="{{ route('backup-targets.backup-now', $target) }}" class="js-confirm" data-confirm-title="เริ่ม Backup?" data-confirm-text="สร้าง backup job ให้ {{ $target->name }} ตอนนี้?">
                     @csrf
                     <button class="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">Backup Now</button>
@@ -129,7 +129,7 @@
                         <h2 class="text-2xl font-semibold text-slate-950">ประวัติ Backup ล่าสุด</h2>
                         <p class="mt-2 text-sm text-slate-500">ประวัติ backup ล่าสุดของ target นี้</p>
                     </div>
-                    <a href="{{ route('backup-jobs.index', ['target_id' => $target->id]) }}" class="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">ดูทั้งหมด</a>
+                    <a href="{{ route('backup-jobs.index', ['target_id' => $target->getRouteKey()]) }}" class="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">ดูทั้งหมด</a>
                 </div>
 
                 <div class="overflow-x-auto">

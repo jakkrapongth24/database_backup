@@ -6,6 +6,7 @@ use App\Models\BackupTarget;
 use App\Models\RestoreJob;
 use App\Models\User;
 use App\Services\DatabaseRestoreService;
+use App\Support\UrlId;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 
@@ -176,7 +177,7 @@ test('restore request queues a restore job', function () {
         'file_path' => $filePath,
     ]);
 
-    $this->post(route('restore.store'), [
+    $response = $this->post(route('restore.store'), [
         'backup_target_id' => $target->id,
         'source_type' => 'backup_job',
         'backup_job_id' => $job->id,
@@ -184,9 +185,15 @@ test('restore request queues a restore job', function () {
         'confirm_understand' => '1',
         'create_safety_backup' => '1',
         'intent' => 'restore',
-    ])
-        ->assertRedirect(route('restore.index', ['target_id' => $target->id]))
+    ]);
+
+    $response
+        ->assertRedirect()
         ->assertSessionHas('status');
+
+    parse_str(parse_url($response->headers->get('Location'), PHP_URL_QUERY) ?: '', $query);
+
+    expect(UrlId::decode($query['target_id'] ?? null))->toBe($target->id);
 
     $restoreJob = RestoreJob::query()->first();
 

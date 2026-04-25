@@ -16,7 +16,7 @@
                 <select id="run_backup_target_id" name="backup_target_id" class="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
                     <option value="">ตรวจทุก Target ที่เปิดใช้งาน</option>
                     @foreach ($targets as $target)
-                        <option value="{{ $target->id }}">{{ $target->name }}</option>
+                        <option value="{{ $target->getRouteKey() }}">{{ $target->name }}</option>
                     @endforeach
                 </select>
                 <label class="flex items-start gap-3 rounded-2xl bg-white p-3 text-sm text-emerald-950">
@@ -35,16 +35,14 @@
                     <input type="checkbox" name="keep_database" value="1" class="rounded border-emerald-300 text-emerald-600 focus:ring-emerald-200">
                     เก็บ Test Database ไว้หลังตรวจเสร็จ
                 </label>
-                <button class="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">
-                    ตรวจ Restore ตอนนี้
-                </button>
+                <button class="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">ตรวจ Restore ตอนนี้</button>
             </form>
         </header>
 
         <section class="mt-6 rounded-[2rem] border border-sky-100 bg-sky-50 p-5">
-            <h2 class="text-lg font-semibold text-sky-950">ใช้หน้านี้แบบง่าย ๆ</h2>
+            <h2 class="text-lg font-semibold text-sky-950">ใช้งานหน้านี้แบบง่าย ๆ</h2>
             <div class="mt-3 grid gap-3 text-sm leading-6 text-sky-900 md:grid-cols-3">
-                <p><span class="font-semibold">1.</span> เลือก target หรือปล่อยเป็นตรวจทั้งหมด</p>
+                <p><span class="font-semibold">1.</span> เลือก target หรือปล่อยว่างเพื่อตรวจทั้งหมด</p>
                 <p><span class="font-semibold">2.</span> กดปุ่มตรวจ Restore ตอนนี้</p>
                 <p><span class="font-semibold">3.</span> ดูผลด้านล่าง ถ้าขึ้น SUCCESS คือ backup พร้อมใช้</p>
             </div>
@@ -73,9 +71,7 @@
                     <p class="text-sm font-medium text-slate-500">{{ $item['label'] }}</p>
                     <div class="mt-3 flex items-center justify-between">
                         <p class="text-3xl font-semibold text-slate-950">{{ number_format($item['value']) }}</p>
-                        <span class="grid h-10 w-10 place-items-center rounded-2xl {{ $item['class'] }}">
-                            <span class="h-2.5 w-2.5 rounded-full bg-current"></span>
-                        </span>
+                        <span class="grid h-10 w-10 place-items-center rounded-2xl {{ $item['class'] }}"><span class="h-2.5 w-2.5 rounded-full bg-current"></span></span>
                     </div>
                 </article>
             @endforeach
@@ -88,7 +84,7 @@
                     <select name="target_id" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-emerald-300 focus:bg-white">
                         <option value="">ทั้งหมด</option>
                         @foreach ($targets as $target)
-                            <option value="{{ $target->id }}" @selected((string) ($filters['target_id'] ?? '') === (string) $target->id)>{{ $target->name }}</option>
+                            <option value="{{ $target->getRouteKey() }}" @selected((string) ($filters['target_id'] ?? '') === (string) $target->id)>{{ $target->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -123,9 +119,7 @@
                         <div>
                             <div class="flex flex-wrap items-center gap-3">
                                 <h2 class="text-lg font-semibold text-slate-950">{{ $drill->target?->name ?? 'Deleted target' }}</h2>
-                                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $drill->status === 'success' ? 'bg-emerald-100 text-emerald-700' : ($drill->status === 'failed' ? 'bg-rose-100 text-rose-700' : 'bg-orange-100 text-orange-700') }}">
-                                    {{ strtoupper($drill->status) }}
-                                </span>
+                                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $drill->status === 'success' ? 'bg-emerald-100 text-emerald-700' : ($drill->status === 'failed' ? 'bg-rose-100 text-rose-700' : 'bg-orange-100 text-orange-700') }}">{{ strtoupper($drill->status) }}</span>
                             </div>
                             <p class="mt-2 break-all font-mono text-xs text-slate-500">{{ $drill->source_name ?: '-' }}</p>
                             <p class="mt-1 break-all text-xs text-slate-400">{{ $drill->source_path ?: '-' }}</p>
@@ -157,9 +151,7 @@
             @endforelse
 
             @if ($drills->hasPages())
-                <div class="rounded-[2rem] bg-white px-6 py-4 shadow-sm shadow-slate-200/80">
-                    {{ $drills->links() }}
-                </div>
+                <div class="rounded-[2rem] bg-white px-6 py-4 shadow-sm shadow-slate-200/80">{{ $drills->links() }}</div>
             @endif
         </section>
     </div>

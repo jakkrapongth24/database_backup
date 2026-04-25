@@ -15,7 +15,7 @@
             <a href="{{ route('backup-jobs.index') }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
                 ประวัติ Backup
             </a>
-            <a href="{{ route('restore-history.index', ['target_id' => $selectedTarget?->id]) }}" class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-center text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
+            <a href="{{ route('restore-history.index', ['target_id' => $selectedTarget?->getRouteKey()]) }}" class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-center text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
                 ประวัติ Restore
             </a>
         </header>
@@ -43,7 +43,7 @@
                     <label class="text-sm font-medium text-slate-600">Backup Target</label>
                     <select name="target_id" onchange="this.form.submit()" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-emerald-300 focus:bg-white">
                         @forelse ($targets as $target)
-                            <option value="{{ $target->id }}" @selected($selectedTarget?->id === $target->id)>
+                            <option value="{{ $target->getRouteKey() }}" @selected($selectedTarget?->id === $target->id)>
                                 {{ $target->name }} / {{ $target->database_name }}
                             </option>
                         @empty
@@ -84,7 +84,7 @@
                         data-confirm-text="ระบบจะเขียนข้อมูลลง {{ $selectedTarget->database_name }} โปรดดำเนินการต่อเมื่อเลือกแหล่งข้อมูลถูกต้องแล้วเท่านั้น"
                     >
                         @csrf
-                        <input type="hidden" name="backup_target_id" value="{{ $selectedTarget->id }}">
+                        <input type="hidden" name="backup_target_id" value="{{ $selectedTarget->getRouteKey() }}">
 
                         <div class="grid gap-3 sm:grid-cols-2">
                             <label class="flex cursor-pointer items-start gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-4 transition has-[:checked]:border-emerald-300 has-[:checked]:bg-emerald-50">
@@ -109,7 +109,7 @@
                                 <select name="backup_job_id" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-emerald-300 focus:bg-white">
                                     <option value="">เลือก backup job</option>
                                     @foreach ($backupJobs as $job)
-                                        <option value="{{ $job->id }}" @selected((string) old('backup_job_id') === (string) $job->id)>
+                                        <option value="{{ $job->getRouteKey() }}" @selected(in_array((string) old('backup_job_id'), [(string) $job->getRouteKey(), (string) $job->id], true))>
                                             #{{ $job->id }} / {{ $job->started_at?->format('Y-m-d H:i') ?? '-' }} / {{ $job->file_name }}
                                         </option>
                                     @endforeach
@@ -203,7 +203,7 @@
                     <h2 class="text-2xl font-semibold text-slate-950">ประวัติ Restore ล่าสุด</h2>
                     <p class="mt-2 text-sm text-slate-500">รายการ restore ล่าสุดของ target ที่เลือก แยกจาก audit log เพื่อดูสถานะได้เร็วขึ้น</p>
                 </div>
-                <a href="{{ route('restore-history.index', ['target_id' => $selectedTarget?->id]) }}" class="rounded-2xl border border-slate-200 px-4 py-2 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                <a href="{{ route('restore-history.index', ['target_id' => $selectedTarget?->getRouteKey()]) }}" class="rounded-2xl border border-slate-200 px-4 py-2 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                     ดูทั้งหมด
                 </a>
             </div>

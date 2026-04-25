@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('backup_jobs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('backup_target_id')->constrained()->cascadeOnDelete();
-            $table->enum('status', ['running', 'success', 'failed'])->default('running');
+            $table->enum('status', ['queued', 'running', 'success', 'failed'])->default('queued');
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
             $table->unsignedInteger('duration_seconds')->nullable();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\DecodesUrlIds;
 use App\Models\BackupJob;
 use App\Models\BackupTarget;
 use App\Services\AuditLogger;
@@ -15,8 +16,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BackupJobController extends Controller
 {
+    use DecodesUrlIds;
+
     public function index(Request $request): View
     {
+        $this->decodeUrlIds($request, ['target_id']);
+
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'in:queued,running,success,failed'],
@@ -24,6 +29,8 @@ class BackupJobController extends Controller
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
         ]);
+
+        $this->encodeUrlIds($request, ['target_id']);
 
         $query = BackupJob::query()
             ->with('target')

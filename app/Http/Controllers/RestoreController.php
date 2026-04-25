@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\DecodesUrlIds;
 use App\Models\BackupJob;
 use App\Models\BackupTarget;
 use App\Models\RestoreJob;
@@ -14,8 +15,12 @@ use Throwable;
 
 class RestoreController extends Controller
 {
+    use DecodesUrlIds;
+
     public function index(Request $request): View
     {
+        $this->decodeUrlIds($request, ['target_id']);
+
         $targetId = $request->integer('target_id') ?: null;
         $targets = BackupTarget::query()
             ->where('is_active', true)
@@ -46,6 +51,8 @@ class RestoreController extends Controller
 
     public function history(Request $request): View
     {
+        $this->decodeUrlIds($request, ['target_id']);
+
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'in:queued,running,success,failed'],
@@ -54,6 +61,8 @@ class RestoreController extends Controller
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
         ]);
+
+        $this->encodeUrlIds($request, ['target_id']);
 
         $query = RestoreJob::query()
             ->with(['target', 'backupJob', 'safetyBackupJob'])
@@ -92,6 +101,8 @@ class RestoreController extends Controller
 
     public function store(Request $request, DatabaseRestoreService $restoreService, AuditLogger $audit): RedirectResponse
     {
+        $this->decodeUrlIds($request, ['backup_target_id', 'backup_job_id']);
+
         $isPrecheck = $request->input('intent') === 'precheck';
         $data = $request->validate([
             'backup_target_id' => ['required', 'integer', 'exists:backup_targets,id'],
@@ -147,7 +158,7 @@ class RestoreController extends Controller
             $message = "Restore {$target->name} queued successfully. Restore job #{$restoreJob->id} is waiting for queue worker.";
 
             return redirect()
-                ->route('restore.index', ['target_id' => $target->id])
+                ->route('restore.index', ['target_id' => $target->getRouteKey()])
                 ->with('status', $message);
         } catch (Throwable $exception) {
             return back()

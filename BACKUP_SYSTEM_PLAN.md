@@ -1157,6 +1157,123 @@ php artisan backup:cleanup --target=1
 
 ---
 
+## อัปเดตงานต่อเนื่อง (2026-04-25 รอบแก้ภาษา History/Reports/Restore Drills)
+
+### ทำเพิ่มแล้ว
+
+- แก้ข้อความภาษาไทยบนหน้า `Backup History`
+  - header
+  - summary cards
+  - filters
+  - empty state
+- แก้ข้อความภาษาไทยบนหน้า `Reports`
+  - header
+  - date filters
+  - summary cards
+  - daily summary
+  - target summary
+- แก้ข้อความภาษาไทยบนหน้า `Restore Drills`
+  - header
+  - form ตรวจ restore
+  - actual restore options
+  - export panel
+  - summary cards
+  - filters
+  - empty state
+- ไม่เปลี่ยน logic หรือข้อมูลที่หน้าเหล่านี้ใช้
+
+### ตรวจสอบแล้ว
+
+- `php -l resources/views/backup-jobs/index.blade.php` ผ่าน
+- `php -l resources/views/reports/index.blade.php` ผ่าน
+- `php -l resources/views/restore-drills/index.blade.php` ผ่าน
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- แก้ encoding ภาษาไทยในหน้า Restore และ Restore History
+- แก้ encoding ภาษาไทยในหน้า Automation Guide / Audit Logs / Queue Monitor ถ้ายังมีจุดเพี้ยน
+- เพิ่ม coverage flow อื่น ๆ เช่น create/edit target, backup now, download, queue monitor, reports
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-25 รอบเข้ารหัส URL ID)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่มตัวช่วย `App\Support\UrlId` สำหรับแปลงเลข id เป็นรหัสใน URL และถอดกลับเป็นเลข id ให้ระบบภายใน
+- ปรับ route model binding ของ `BackupTarget` และ `BackupJob` ให้ลิงก์แบบ `/backup-targets/...` และ `/backup-history/.../download` ไม่แสดงเลข id ตรง ๆ
+- เพิ่ม trait `DecodesUrlIds` ให้ controller ถอดรหัสค่า query/form ก่อน validate:
+  - `target_id`
+  - `backup_target_id`
+  - `backup_job_id`
+- ปรับหน้า Backup Target, Backup History, Restore, Restore History และ Restore Drills ให้ส่งค่า id แบบเข้ารหัสในลิงก์และฟอร์ม
+- ยังรองรับ URL/ฟอร์มเก่าที่ส่งเลข id ตรง ๆ เพื่อไม่ให้ test และลิงก์เก่าใช้งานไม่ได้ทันที
+- เพิ่ม test ตรวจว่าลิงก์ target ไม่ใช่เลข id ตรง ๆ และ filter/restore page รับค่า id แบบเข้ารหัสได้
+
+### หมายเหตุ
+
+- การเข้ารหัสนี้ช่วยไม่ให้เห็นเลข id ใน URL โดยตรง แต่สิทธิ์การเข้าถึงจริงยังควรตรวจด้วย auth/permission ตามเดิม
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-25 รอบเพิ่ม Coverage Backup Workflow)
+
+### ทำเพิ่มแล้ว
+
+- เพิ่ม test ใหม่ `tests/Feature/BackupTargetWorkflowTest.php`
+- ครอบคลุม flow สำคัญผ่านหน้าเว็บ:
+  - สร้าง Backup Target
+  - เปิดหน้าแสดงรายละเอียด target ด้วย URL id แบบเข้ารหัส
+  - แก้ไข Backup Target
+  - กด `Backup Now` แล้วสร้าง `backup_jobs` เป็นสถานะ `queued`
+  - ตรวจว่า dispatch `RunBackupJob`
+  - ดาวน์โหลด backup file ผ่าน route `backup-jobs.download` โดย URL ไม่แสดงเลข job id ตรง ๆ
+- แก้ migration ตั้งต้นของ `backup_jobs.status` ให้รองรับ `queued` ตั้งแต่ fresh install/test database เพื่อให้ตรงกับระบบ queue ปัจจุบัน
+
+### ตรวจสอบแล้ว
+
+- `php -l database/migrations/2026_04_23_000002_create_backup_jobs_table.php` ผ่าน
+- `php artisan test --filter=BackupTargetWorkflowTest` ผ่าน 3 tests
+
+### งานที่ยังเหลือ / ควรทำต่อ
+
+- เพิ่ม coverage หน้า Queue Monitor, Reports, Audit Logs
+- ค่อย ๆ แก้ encoding ภาษาไทยในไฟล์เก่าที่แสดงเป็น mojibake ในบางจุด
+
+---
+
+## อัปเดตงานต่อเนื่อง (2026-04-25 รอบปิดงานแก้ภาษาไทยเพี้ยน)
+
+### ทำเพิ่มแล้ว
+
+- แก้ข้อความภาษาไทย mojibake ในไฟล์เก่าแบบครอบคลุม โดยแปลงเฉพาะบรรทัดที่ตรวจพบ encoding เพี้ยน
+- ครอบคลุมไฟล์ในกลุ่ม:
+  - `resources/views`
+  - `app/Http/Controllers`
+  - `app/Services`
+  - `tests/Feature`
+  - `BACKUP_SYSTEM_PLAN.md`
+- จุดที่แก้รวมถึงหน้า/ข้อความสำคัญ:
+  - Automation Guide
+  - Backup History
+  - Backup Target Detail
+  - Restore
+  - Restore Drills
+  - ข้อความแจ้งเตือนจาก controller
+  - ข้อความใน Restore Drill service และ tests
+
+### ตรวจสอบแล้ว
+
+- ตรวจหาบรรทัด mojibake จาก control character แล้วเหลือ `0`
+- `php -l` ผ่านสำหรับไฟล์ controller/service/view ที่เกี่ยวข้อง
+
+### สถานะปิดงาน
+
+- งานฟีเจอร์หลักและงานภาษาไทยเพี้ยนถือว่าปิดครบแล้ว
+- งานที่เหลือหลังจากนี้เป็นงานเสริมในอนาคตเท่านั้น เช่น เพิ่ม coverage หน้า Queue Monitor, Reports, Audit Logs หรือปรับ UX เพิ่มเติมตามการใช้งานจริง
+
+---
+
 ## อัปเดตงานต่อเนื่อง (2026-04-24 รอบ Cleanup ใช้งานผ่านหน้าเว็บ)
 
 ### ทำเพิ่มแล้ว

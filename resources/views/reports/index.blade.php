@@ -8,21 +8,13 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-600">Reports</p>
                 <h1 class="mt-3 text-3xl font-semibold tracking-tight text-slate-950">รายงานภาพรวม Backup</h1>
-                <p class="mt-2 text-sm leading-6 text-slate-500">สรุปอัตราสำเร็จ ขนาดไฟล์รวม รายวัน และระบบที่ควรตรวจสอบ พร้อม export เป็น CSV ได้ทันที</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">สรุปอัตราสำเร็จ ขนาดไฟล์รวม รายวัน และระบบที่ควรตรวจสอบ พร้อม export ได้ทันที</p>
             </div>
             <div class="flex flex-col gap-3 sm:flex-row">
-                <a href="{{ route('reports.export.csv', ['date_from' => $dateFrom, 'date_to' => $dateTo]) }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
-                    Export CSV
-                </a>
-                <a href="{{ route('reports.export.excel', ['date_from' => $dateFrom, 'date_to' => $dateTo]) }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
-                    Export Excel
-                </a>
-                <a href="{{ route('reports.export.pdf', ['date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" rel="noopener" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">
-                    Export PDF
-                </a>
-                <a href="{{ route('backup-jobs.index') }}" class="rounded-2xl bg-emerald-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">
-                    ดูประวัติ Backup
-                </a>
+                <a href="{{ route('reports.export.csv', ['date_from' => $dateFrom, 'date_to' => $dateTo]) }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">Export CSV</a>
+                <a href="{{ route('reports.export.excel', ['date_from' => $dateFrom, 'date_to' => $dateTo]) }}" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">Export Excel</a>
+                <a href="{{ route('reports.export.pdf', ['date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" rel="noopener" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50">Export PDF</a>
+                <a href="{{ route('backup-jobs.index') }}" class="rounded-2xl bg-emerald-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-600">ดูประวัติ Backup</a>
             </div>
         </header>
 
@@ -60,9 +52,7 @@
                             <p class="text-sm font-medium text-slate-500">{{ $item['label'] }}</p>
                             <p class="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{{ $item['value'] }}</p>
                         </div>
-                        <span class="grid h-11 w-11 place-items-center rounded-2xl {{ $item['class'] }}">
-                            <span class="h-2.5 w-2.5 rounded-full bg-current"></span>
-                        </span>
+                        <span class="grid h-11 w-11 place-items-center rounded-2xl {{ $item['class'] }}"><span class="h-2.5 w-2.5 rounded-full bg-current"></span></span>
                     </div>
                     <p class="mt-3 text-sm text-slate-500">{{ $item['desc'] }}</p>
                 </article>
@@ -71,7 +61,7 @@
 
         <section class="mt-6 grid gap-5 xl:grid-cols-[0.9fr_1.3fr]">
             <article class="rounded-[2rem] border border-white bg-white p-6 shadow-sm shadow-slate-200/80">
-                <h2 class="text-2xl font-semibold text-slate-950">รายวันล่าสุด</h2>
+                <h2 class="text-2xl font-semibold text-slate-950">สรุปรายวันล่าสุด</h2>
                 <div class="mt-5 space-y-3">
                     @forelse ($daily as $day)
                         <div class="rounded-3xl border border-slate-100 bg-slate-50 p-4">
@@ -126,9 +116,7 @@
                                         <p class="mt-1">Failed: {{ $row['latest_failed_at']?->format('Y-m-d H:i') ?? '-' }}</p>
                                     </td>
                                     <td class="px-6 py-5">
-                                        <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $row['is_stale'] ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }}">
-                                            {{ $row['is_stale'] ? 'Check' : 'OK' }}
-                                        </span>
+                                        <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $row['is_stale'] ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }}">{{ $row['is_stale'] ? 'ควรตรวจสอบ' : 'OK' }}</span>
                                     </td>
                                 </tr>
                             @empty
